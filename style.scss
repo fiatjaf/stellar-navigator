@@ -1,0 +1,18 @@
+$primary: #7ebcf9;
+
+@import 'node_modules/bulma/bulma.sass';
+@import 'node_modules/bulma-divider/divider.sass';
+@import 'node_modules/bulma-switch/switch.sass';
+@import 'node_modules/bulma-badge/badge.sass';
+
+.top {
+  margin: 18px auto;
+
+  input { width: 90%; }
+}
+
+.main > div {
+  margin: 18px;
+  padding: 26px;
+  border: 1px solid black;
+}

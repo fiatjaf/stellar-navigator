@@ -1,0 +1,21 @@
+<!doctype>
+
+<meta charset=utf-8>
+<title>Stellar Browser</title>
+<link href=bundle.css rel=stylesheet>
+<body></body>
+<script src=elm.js></script>
+<script>
+const app = Elm.Main.fullscreen()
+
+app.ports.pushPage.subscribe(function ({pos, title, url}) {
+  history.pushState(pos, title, url)
+})
+
+app.ports.navigate.send(location.hash.slice(1))
+
+history.onpopstate = function (e) {
+  let pos = e.state
+  app.ports.surf(pos)
+}
+</script>
