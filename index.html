@@ -1,21 +1,27 @@
-<!doctype>
+<!doctype html>
 
 <meta charset=utf-8>
-<title>Stellar Browser</title>
+<title>Stellar Navigator</title>
 <link href=bundle.css rel=stylesheet>
 <body></body>
 <script src=elm.js></script>
 <script>
 const app = Elm.Main.fullscreen()
 
-app.ports.pushPage.subscribe(function ({pos, title, url}) {
-  history.pushState(pos, title, url)
+app.ports.pushPage.subscribe(function ([pos, title, url]) {
+  if (location.href.split('/').slice(3).join('/') == '#' + url) {
+    console.log('repeated')
+    return
+  }
+  console.log('pushing to history', pos, url)
+  history.pushState(pos, title, '/#' + url)
 })
 
 app.ports.navigate.send(location.hash.slice(1))
 
 history.onpopstate = function (e) {
   let pos = e.state
+  console.log('surfing', pos)
   app.ports.surf(pos)
 }
 </script>

@@ -44,7 +44,7 @@ init =
 -- UPDATE
 type Msg
   = GotThing Int (Result Http.Error Thing)
-  | Navigate String
+  | Navigate Int String
   | Surf Int
   | Pasted String
 
@@ -52,23 +52,34 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     GotThing pos result ->
-      case result of
-        Err err -> ( { model | error = "ERROR" }, Cmd.none )
-        Ok thing ->
-          ( { model | things = model.things |> Array.set model.pos thing }
+      let x = Debug.log "got on pos" pos
+          y = Debug.log "current" model.pos
+          z = Debug.log "things count" <| Array.length model.things
+      in case result of
+        Err err ->
+          ( { model | things = model.things |> Array.set pos (Errored err) }
           , Cmd.none
           )
-    Navigate pathname ->
+        Ok thing ->
+          ( { model | things = model.things |> Array.set pos (Debug.log "thing" thing) }
+          , Cmd.none
+          )
+    Navigate base_pos pathname ->
       ( { model
-          | pos = model.pos + 1
+          | pos = Debug.log "next_pos" <| base_pos + 1
           , things = model.things
-            |> Array.slice 0 (model.pos + 1)
+            |> Array.slice 0 (base_pos + 1)
             |> Array.push Empty
         }
-      , fetch pathname <| GotThing (model.pos + 1)
+      , Cmd.batch
+        [ fetch pathname <| GotThing (base_pos + 1)
+        , pushPage ((base_pos + 1), pathname, pathname)
+        ]
       )
     Surf pos ->
-      ( model, Cmd.none )
+      ( { model | pos = pos }
+      , Cmd.none
+      )
     Pasted something ->
       ( model, Cmd.none )
 
@@ -77,7 +88,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ navigate Navigate
+    [ navigate (Navigate model.pos)
     , surf Surf
     ]
 
@@ -87,20 +98,37 @@ view : Model -> Html Msg
 view model =
   if model.error /= "" then text model.error
   else div []
-    [ div [ class "top" ]
-      [ input
-        [ class "input"
-        , placeholder "paste some Stellar identifier here"
-        , onInput Pasted
-        ] []
-      , button [ class "button is-primary" ] [ text "ok" ]
+    [ div [ class "top columns is-mobile" ]
+      [ div [ class "column is-11" ]
+        [ input
+          [ class "input"
+          , placeholder "paste some Stellar identifier here"
+          , onInput Pasted
+          ] []
+        ]
+      , div [ class "column is-1" ]
+        [ button [ class "button is-primary" ] [ text "ok" ]
+        ]
       ]
+    , text <| toString model.pos
     , div [ class "main columns" ] <|
       let 
+        before = Array.get (model.pos - 2) model.things |> withDefault Empty
         left = Array.get (model.pos - 1) model.things |> withDefault Empty
         right = Array.get (model.pos) model.things |> withDefault Empty
+        after = Array.get (model.pos + 1) model.things |> withDefault Empty
       in
-        [ div [ class "column" ] [ viewThing left ]
-        , div [ class "column" ] [ viewThing right ]
+        [ div [ class "column is-2 is-hidden-mobile" ]
+          [ viewThing (Navigate (model.pos - 2)) before
+          ]
+        , div [ class "column is-hidden-mobile" ]
+          [ viewThing (Navigate (model.pos - 1)) left
+          ]
+        , div [ class "column" ]
+          [ viewThing (Navigate model.pos) right
+          ]
+        , div [ class "column is-2 is-hidden-mobile" ]
+          [ viewThing (Navigate (model.pos + 1)) after
+          ]
         ]
     ]

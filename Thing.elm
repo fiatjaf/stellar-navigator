@@ -52,6 +52,7 @@ type Thing
   | Transaction Txn
   | Operation Op
   | Empty
+  | Errored Http.Error
 
 thingDecoder : J.Decoder Thing
 thingDecoder =
@@ -63,31 +64,37 @@ thingDecoder =
     ]
 
 type alias Addr =
-  { address : String
+  { id : String
   , balances : List Balance
   }
 
 addrDecoder : J.Decoder Addr
 addrDecoder =
   J.map2 Addr
-    ( J.field "address" J.string )
+    ( J.field "id" J.string )
     ( J.field "balances" <| J.list balanceDecoder )
 
 type alias Balance =
   { asset_type : String
+  , asset_name : String
   , balance : String
   }
 
 balanceDecoder : J.Decoder Balance
 balanceDecoder =
-  J.map2 Balance
+  J.map3 Balance
     ( J.field "asset_type" J.string )
+    ( J.oneOf
+      [ J.field "asset_name" J.string
+      , J.succeed "Lumens"
+      ]
+    )
     ( J.field "balance" J.string )
 
 type alias Txn =
   { hash : String
   , ledger : Int
-  , created : String
+  , created_at : String
   , source_account : String
   , fee_paid : Int
   }
@@ -115,10 +122,84 @@ opDecoder =
     ( J.field "type_" J.string )
 
 
-viewThing : Thing -> Html msg
-viewThing t =
+viewThing : (String -> msg) -> Thing -> Html msg
+viewThing nav t =
   case t of
-    Address addr -> div [] [ text <| "address " ++ addr.address ]
-    Transaction txn -> div [] [ text <| "transaction " ++ txn.hash ]
-    Operation op -> div [] [ text <| "operation " ++ op.id ]
-    Empty -> div [] [ text "nothing" ]
+    Address addr -> div [ class "box thing addr" ] [ viewAddr nav addr ]
+    Transaction txn -> div [ class "box thing txn" ] [ viewTxn nav txn ]
+    Operation op -> div [ class "box thing op" ] [ viewOp nav op ]
+    Empty -> div [ class "box thing empty" ] []
+    Errored err -> div [ class "box thing errored" ] [ text <| errorFormat err ]
+
+viewAddr : (String -> msg) -> Addr -> Html msg
+viewAddr nav addr =
+  div []
+    [ h1 [ class "title", title addr.id ] [ text <| "Address " ++ (wrap addr.id) ]
+    , table []
+        <| List.map (assetRow nav) addr.balances
+    ]
+
+assetRow : (String -> msg) -> Balance -> Html msg
+assetRow nav balance =
+  tr []
+    [ td [] [ text balance.asset_name ]
+    , td [] [ text balance.balance ]
+    ]
+
+viewTxn : (String -> msg) -> Txn -> Html msg
+viewTxn nav txn =
+  div []
+    [ h1 [ class "title" ] [ text <| "Transaction " ++ (wrap txn.hash) ]
+    , table []
+      [ tr []
+        [ th [] [ text "ledger" ]
+        , td [] [ text <| toString txn.ledger ]
+        ]
+      , tr []
+        [ th [] [ text "created_at" ]
+        , td [] [ text txn.created_at ]
+        ]
+      , tr []
+        [ th [] [ text "source_account" ]
+        , td []
+          [ a
+            [ onClick (nav <| "/addr/" ++ txn.source_account)
+            ] [ text txn.source_account ]
+          ]
+        ]
+      , tr []
+        [ th [] [ text "fee_paid" ]
+        , td [] [ text <| toString txn.fee_paid ]
+        ]
+      ]
+    ]
+
+viewOp : (String -> msg) -> Op -> Html msg
+viewOp nav op =
+  div []
+    [ h1 [ class "title" ] [ text <| "Operation " ++ (wrap op.id) ]
+    , table []
+      [ tr []
+        [ th [] [ text "source_account" ]
+        , td [] [ text <| op.source_account ]
+        ]
+      , tr []
+        [ th [] [ text "type" ]
+        , td [] [ text op.type_ ]
+        ]
+      ]
+    ]
+
+
+wrap : String -> String
+wrap hash = (String.left 3 hash) ++ "..." ++ (String.right 4 hash)
+
+errorFormat : Http.Error -> String
+errorFormat err =
+  case err of
+    Http.BadUrl u -> "bad url " ++ u
+    Http.Timeout -> "timeout"
+    Http.NetworkError -> "network error"
+    Http.BadStatus resp ->
+      resp.url ++ " returned " ++ (toString resp.status.code) ++ ": " ++ resp.body
+    Http.BadPayload x y -> "bad payload (" ++ x ++ ")"
