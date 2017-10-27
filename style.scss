@@ -34,15 +34,25 @@ $primary: #7ebcf9;
 }
 
 .box.thing {
+  overflow: hidden;
+
   &.addr { background-color: #C3E5C1 ; }
   &.txn { background-color: #E5C4C1 ; }
   &.op { background-color: #C1CBE5; }
   &.eff { background-color: #E5E3C1; }
   &.ledg { background-color: #E5D7C1; }
 
-  th { text-align: right; }
-  td {
-    padding-left: 6px;
+  thead th { text-align: center; }
+  table > tr > th {
+    text-align: right;
+    padding-left: 0;
+    &:after {
+      content: ': ';
+    }
+  }
+  th, td { padding: 5px; }
+  .table th, .table td { padding: 2px 5px; }
+  th + td {
     word-break: break-all;
   }
 }
