@@ -36,11 +36,11 @@ $primary: #7ebcf9;
 .box.thing {
   overflow: hidden;
 
-  &.addr { background-color: #C3E5C1 ; }
-  &.txn { background-color: #E5C4C1 ; }
-  &.op { background-color: #C1CBE5; }
-  &.eff { background-color: #E5E3C1; }
-  &.ledg { background-color: #E5D7C1; }
+  &.addr { background-color: lighten(#C3E5C1, 0.9); }
+  &.txn { background-color: lighten(#E5C4C1, 0.9); }
+  &.op { background-color: lighten(#C1CBE5, 0.9); }
+  &.eff { background-color: lighten(#E5E3C1, 0.9); }
+  &.ledg { background-color: lighten(#E5D7C1, 0.9); }
 
   thead th { text-align: center; }
   table > tr > th {

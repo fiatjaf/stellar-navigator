@@ -46,7 +46,9 @@ type Msg
   = GotThing Int (Result Http.Error Thing)
   | Navigate Int String
   | Surf Int
+  | Refresh Int
   | Pasted String
+  | DoNothing
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -77,10 +79,22 @@ update msg model =
         ]
       )
     Surf pos ->
-      ( { model | pos = pos }
+      ( { model | pos = Debug.log "surfing to" pos }
       , Cmd.none
       )
+    Refresh pos ->
+      let
+        pathname = model.things
+          |> Array.get pos
+          |> withDefault Empty
+          |> thingUrl
+      in
+        ( model
+        , fetch pathname <| GotThing (pos + 1)
+        )
     Pasted something ->
+      ( model, Cmd.none )
+    DoNothing ->
       ( model, Cmd.none )
 
 
@@ -119,16 +133,16 @@ view model =
         after = Array.get (model.pos + 1) model.things |> withDefault Empty
       in
         [ div [ class "column is-2 is-hidden-mobile" ]
-          [ viewThing (Navigate (model.pos - 2)) before
+          [ viewThing (Surf <| model.pos - 2) (Navigate (model.pos - 2)) before
           ]
         , div [ class "column is-hidden-mobile" ]
-          [ viewThing (Navigate (model.pos - 1)) left
+          [ viewThing DoNothing (Navigate (model.pos - 1)) left
           ]
         , div [ class "column" ]
-          [ viewThing (Navigate model.pos) right
+          [ viewThing DoNothing (Navigate model.pos) right
           ]
         , div [ class "column is-2 is-hidden-mobile" ]
-          [ viewThing (Navigate (model.pos + 1)) after
+          [ viewThing (Surf <| model.pos + 1) (Navigate (model.pos + 1)) after
           ]
         ]
     ]

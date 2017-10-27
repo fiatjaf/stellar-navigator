@@ -10,18 +10,17 @@ const app = Elm.Main.fullscreen()
 
 app.ports.pushPage.subscribe(function ([pos, title, url]) {
   if (location.href.split('/').slice(3).join('/') == '#' + url) {
-    console.log('repeated')
     return
   }
-  console.log('pushing to history', pos, url)
+  console.log('pushing to', pos)
   history.pushState(pos, title, '/#' + url)
 })
 
 app.ports.navigate.send(location.hash.slice(1))
 
-history.onpopstate = function (e) {
+window.onpopstate = function (e) {
   let pos = e.state
-  console.log('surfing', pos)
-  app.ports.surf(pos)
+  console.log('will surf to', pos)
+  app.ports.surf.send(pos)
 }
 </script>

@@ -15,47 +15,30 @@ import Json.Decode as J
 import Route exposing (..)
 
 
-type ThingRoute
-  = AddrRoute String
-  | TxnsForAddrRoute String
-  | TxnRoute String
-  | OpsForTxnRoute String
-  | OpRoute String
-  | EmptyRoute
+base = "https://horizon-testnet.stellar.org"
 
 routes = router
-  [ AddrRoute := static "addr" </> string
-  , TxnsForAddrRoute := static "txnsforaddr" </> string
-  , TxnRoute := static "txn" </> string
-  , OpsForTxnRoute := static "opsfortxn" </> string
-  , OpRoute := static "op" </> string
+  [ route (Address << \s -> { defaultAddr | id = s })
+    <| static "addr" </> string
+  , route (TransactionsForAddress << \s -> { defaultTfA | addr = s })
+    <| static "txnsforaddr" </> string
+  , route (Transaction << \s -> { defaultTxn | hash = s })
+    <| static "txn" </> string
+  , route (OperationsForTransaction << \s -> { defaultOfT | hash = s })
+    <| static "opsfortxn" </> string
+  , route (Operation << \s -> { defaultOp | id = s })
+    <| static "op" </> string
   ] 
 
-match : String -> ThingRoute
-match = Route.match routes >> Maybe.withDefault EmptyRoute
-
-base = "https://horizon-testnet.stellar.org"
+match : String -> Thing
+match = Route.match routes >> Maybe.withDefault Empty
 
 fetch : String -> (Result Http.Error Thing -> msg) -> Cmd msg
 fetch pathname hmsg =
   let 
-    (decoder, url) = case match pathname of
-      AddrRoute addr ->
-        ( addrDecoder |> J.map Address, base ++ "/accounts/" ++ addr )
-      TxnsForAddrRoute addr ->
-        ( J.at ["_embedded", "records"] (J.list txnDecoder) |> J.map TransactionsForAddress
-        , base ++ "/accounts/" ++ addr ++ "/transactions?order=desc&limit=15"
-        )
-      TxnRoute hash ->
-        ( txnDecoder |> J.map Transaction, base ++ "/transactions/" ++ hash )
-      OpsForTxnRoute hash ->
-        ( J.at ["_embedded", "records"] (J.list opDecoder) |> J.map OperationsForTransaction
-        , base ++ "/transactions/" ++ hash ++ "/operations"
-        )
-      OpRoute id ->
-        ( opDecoder |> J.map Operation, base ++ "/operations/" ++ id )
-      EmptyRoute ->
-        (J.null Empty, "")
+    thing = match pathname
+    url = thingUrl thing
+    decoder = thingDecoder thing
   in
     if url == ""
     then hmsg (Ok Empty)
@@ -66,17 +49,43 @@ fetch pathname hmsg =
 
 type Thing
   = Address Addr
-  | TransactionsForAddress (List Txn)
+  | TransactionsForAddress TfA
   | Transaction Txn
-  | OperationsForTransaction (List Op)
+  | OperationsForTransaction OfT
   | Operation Op
   | Empty
   | Errored Http.Error
+
+thingUrl : Thing -> String
+thingUrl thing =
+  case thing of
+    Address addr -> base ++ "/accounts/" ++ addr.id
+    TransactionsForAddress tfa ->
+      base ++ "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=15"
+    Transaction txn -> base ++ "/transactions/" ++ txn.hash
+    OperationsForTransaction oft ->
+      base ++ "/transactions/" ++ oft.hash ++ "/operations"
+    Operation op -> base ++ "/operations/" ++ op.id
+    Errored _ -> ""
+    Empty -> ""
+
+thingDecoder : Thing -> J.Decoder Thing
+thingDecoder thing =
+  case thing of
+    Address _ -> addrDecoder |> J.map Address
+    TransactionsForAddress _ -> tfaDecoder |> J.map TransactionsForAddress
+    Transaction _ -> txnDecoder |> J.map Transaction
+    OperationsForTransaction _ -> oftDecoder |> J.map OperationsForTransaction
+    Operation _ -> opDecoder |> J.map Operation
+    Errored err -> J.null (Errored err)
+    Empty -> J.null Empty
 
 type alias Addr =
   { id : String
   , balances : List Balance
   }
+
+defaultAddr = Addr "" []
 
 addrDecoder : J.Decoder Addr
 addrDecoder =
@@ -90,6 +99,8 @@ type alias Balance =
   , balance : String
   , limit : String
   }
+
+defaultBalance = Balance "" "" "" ""
 
 balanceDecoder : J.Decoder Balance
 balanceDecoder =
@@ -111,6 +122,19 @@ balanceDecoder =
       ]
     )
 
+type alias TfA =
+  { addr : String
+  , transactions : List Txn
+  }
+
+defaultTfA = TfA "" []
+
+tfaDecoder : J.Decoder TfA
+tfaDecoder =
+  J.map2 TfA
+    ( J.succeed "" )
+    ( J.at ["_embedded", "records"] (J.list txnDecoder) )
+
 type alias Txn =
   { hash : String
   , ledger : Int
@@ -119,6 +143,8 @@ type alias Txn =
   , operation_count : Int
   , fee_paid : Int
   }
+
+defaultTxn = Txn "" 0 "" "" 0 0
 
 txnDecoder : J.Decoder Txn
 txnDecoder =
@@ -130,11 +156,26 @@ txnDecoder =
     ( J.field "operation_count" J.int )
     ( J.field "fee_paid" J.int )
 
+type alias OfT =
+  { hash : String
+  , operations : List Op
+  }
+
+defaultOfT = OfT "" []
+
+oftDecoder : J.Decoder OfT
+oftDecoder =
+  J.map2 OfT
+    ( J.succeed "" )
+    ( J.at ["_embedded", "records"] (J.list opDecoder) )
+
 type alias Op =
   { id : String
   , source_account : String
   , type_ : String
   }
+
+defaultOp = Op "" "" ""
 
 opDecoder : J.Decoder Op
 opDecoder =
@@ -144,16 +185,22 @@ opDecoder =
     ( J.field "type" J.string )
 
 
-viewThing : (String -> msg) -> Thing -> Html msg
-viewThing nav t =
-  case t of
-    Address addr -> div [ class "box thing addr" ] [ viewAddr nav addr ]
-    TransactionsForAddress txns -> div [ class "box thing addr" ] [ viewTxnsForAddr nav txns ]
-    Transaction txn -> div [ class "box thing txn" ] [ viewTxn nav txn ]
-    OperationsForTransaction ops -> div [ class "box thing txn" ] [ viewOpsForTxn nav ops ]
-    Operation op -> div [ class "box thing op" ] [ viewOp nav op ]
-    Empty -> div [ class "box thing empty" ] []
-    Errored err -> div [ class "box thing errored" ] [ text <| errorFormat err ]
+viewThing : msg -> (String -> msg) -> Thing -> Html msg
+viewThing surf nav t =
+  let
+    (kind, content) = case t of
+      Address addr -> ("addr", viewAddr nav addr)
+      TransactionsForAddress tfa -> ("addr", viewTfA nav tfa)
+      Transaction txn -> ("txn", viewTxn nav txn)
+      OperationsForTransaction oft -> ("txn", viewOfT nav oft)
+      Operation op -> ("op", viewOp nav op)
+      Empty -> ("empty", text "")
+      Errored err -> ("errored", text <| errorFormat err)
+  in
+    div
+      [ onClick surf
+      , class <| "box thing " ++ kind
+      ] [ content ]
 
 viewAddr : (String -> msg) -> Addr -> Html msg
 viewAddr nav addr =
@@ -220,10 +267,10 @@ assetRow nav getter asset =
     , td [] [ text <| getter asset ]
     ]
 
-viewTxnsForAddr : (String -> msg) -> List Txn -> Html msg
-viewTxnsForAddr nav txns =
+viewTfA : (String -> msg) -> TfA -> Html msg
+viewTfA nav tfa =
   div []
-    [ h1 [ class "title is-4" ] [ text "Transactions for Address" ]
+    [ h1 [ class "title is-4" ] [ text <| "Transactions for Address " ++ tfa.addr ]
     , table []
       [ thead []
         [ tr []
@@ -233,7 +280,7 @@ viewTxnsForAddr nav txns =
           ]
         ]
       , tbody []
-        <| List.map (shortTxnRow nav) txns
+        <| List.map (shortTxnRow nav) tfa.transactions
       ]
     ]
 
@@ -291,10 +338,10 @@ viewTxn nav txn =
       ]
     ]
 
-viewOpsForTxn : (String -> msg) -> List Op -> Html msg
-viewOpsForTxn nav ops =
+viewOfT : (String -> msg) -> OfT -> Html msg
+viewOfT nav oft =
   div []
-    [ h1 [ class "title is-4" ] [ text <| "Operations for Transaction" ]
+    [ h1 [ class "title is-4" ] [ text <| "Operations for Transaction " ++ oft.hash ]
     , table []
       [ thead []
         [ tr []
@@ -304,7 +351,7 @@ viewOpsForTxn nav ops =
           ]
         ]
       , tbody []
-        <| List.map (shortOpRow nav) ops
+        <| List.map (shortOpRow nav) oft.operations
       ]
     ]
 
