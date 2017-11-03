@@ -16,6 +16,9 @@ import Hashbow
 import Color
 import Route exposing (..)
 
+import Operations exposing (..)
+import Asset exposing (..)
+
 
 base = "https://horizon-testnet.stellar.org"
 
@@ -102,27 +105,15 @@ addrDecoder =
     ( J.field "balances" <| J.list balanceDecoder )
 
 type alias Balance =
-  { asset_code : String
-  , asset_issuer : String
+  { asset : Asset
   , balance : String
   , limit : String
   }
 
-defaultBalance = Balance "" "" "" ""
-
 balanceDecoder : J.Decoder Balance
 balanceDecoder =
-  J.map4 Balance
-    ( J.oneOf
-      [ J.field "asset_code" J.string
-      , J.succeed "Lumens"
-      ]
-    )
-    ( J.oneOf
-      [ J.field "asset_issuer" J.string
-      , J.succeed ""
-      ]
-    )
+  J.map3 Balance
+    ( assetDecoder )
     ( J.field "balance" J.string )
     ( J.oneOf
       [ J.field "limit" J.string
@@ -181,16 +172,18 @@ type alias Op =
   { id : String
   , source_account : String
   , type_ : String
+  , data : OpData
   }
 
-defaultOp = Op "" "" ""
+defaultOp = Op "" "" "" None
 
 opDecoder : J.Decoder Op
 opDecoder =
-  J.map3 Op
+  J.map4 Op
     ( J.field "id" J.string )
     ( J.field "source_account" J.string )
     ( J.field "type" J.string )
+    ( opDataDecoder )
 
 
 viewThing : msg -> (String -> msg) -> Thing -> Html msg
@@ -235,14 +228,14 @@ viewAddr nav addr =
                 ]
               ]
             , tbody []
-              <| List.map (assetRow nav .balance) addr.balances
+              <| List.map (balanceRow nav .balance) addr.balances
             ]
           ]
         ]
       , let
-          assets = List.filter (.asset_issuer >> ((/=) "")) addr.balances
+          balances = List.filter (.asset >> .native >> not) addr.balances
         in
-          if List.length assets == 0
+          if List.length balances == 0
           then text ""
           else tr []
             [ th [] [ text "trust lines" ]
@@ -256,7 +249,7 @@ viewAddr nav addr =
                     ]
                   ]
                 , tbody []
-                  <| List.map (assetRow nav .limit) assets
+                  <| List.map (balanceRow nav .limit) balances
                 ]
               ]
             ]
@@ -267,16 +260,16 @@ viewAddr nav addr =
       ]
     ]
 
-assetRow : (String -> msg) -> (Balance -> String) -> Balance -> Html msg
-assetRow nav getter asset =
+balanceRow : (String -> msg) -> (Balance -> String) -> Balance -> Html msg
+balanceRow nav getter balance =
   tr []
-    [ td [] [ text asset.asset_code ]
+    [ td [] [ text balance.asset.code ]
     , td []
-      [ a [ onClick (nav <| "/addr/" ++ asset.asset_issuer ) ]
-        [ text <| wrap asset.asset_issuer
+      [ a [ onClick (nav <| "/addr/" ++ balance.asset.issuer ) ]
+        [ text <| wrap balance.asset.issuer
         ]
       ]
-    , td [] [ text <| getter asset ]
+    , td [] [ text <| getter balance ]
     ]
 
 viewTfA : (String -> msg) -> TfA -> Html msg
