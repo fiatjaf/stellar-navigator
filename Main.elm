@@ -75,6 +75,12 @@ update msg model =
         , pushPage ((base_pos + 1), pathname, pathname)
         ]
       )
+    Pasted something ->
+      let
+        kind = identifierKind something
+        pathname = "/" ++ kind ++ "/" ++ something
+      in
+        update (Navigate model.pos pathname) model
     Surf pos ->
       ( { model | pos = Debug.log "surfing to" pos }
       , Cmd.none
@@ -89,8 +95,6 @@ update msg model =
         ( model
         , fetch pathname <| GotThing (pos + 1)
         )
-    Pasted something ->
-      ( model, Cmd.none )
     DoNothing ->
       ( model, Cmd.none )
 
@@ -113,7 +117,7 @@ view model =
       [ div [ class "column is-11" ]
         [ input
           [ class "input"
-          , placeholder "paste some Stellar identifier here"
+          , placeholder "Type a Stellar identifier (address, transaction hash, operation id etc.)"
           , onInput Pasted
           ] []
         ]
@@ -142,3 +146,17 @@ view model =
           ]
         ]
     ]
+
+
+identifierKind : String -> String
+identifierKind identifier =
+  let
+    len = String.length identifier
+    int = String.toInt identifier |> Result.withDefault 0
+  in
+    if len == 56 then "addr"
+    else if len == 64 then "txn"
+    else if int == 0 then ""
+    else if int < 100000000 then "ledg"
+    else "op"
+    
