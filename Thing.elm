@@ -35,7 +35,7 @@ match = Route.match routes >> Maybe.withDefault Empty
 
 fetch : String -> (Result Http.Error Thing -> msg) -> Cmd msg
 fetch pathname hmsg =
-  let 
+  let
     thing = match pathname
     url = thingUrl thing
     decoder = thingDecoder thing
@@ -73,9 +73,15 @@ thingDecoder : Thing -> J.Decoder Thing
 thingDecoder thing =
   case thing of
     Address _ -> addrDecoder |> J.map Address
-    TransactionsForAddress _ -> tfaDecoder |> J.map TransactionsForAddress
+    TransactionsForAddress tfa ->
+      tfaDecoder
+        |> J.map (\f -> { f | addr = tfa.addr })
+        |> J.map TransactionsForAddress
     Transaction _ -> txnDecoder |> J.map Transaction
-    OperationsForTransaction _ -> oftDecoder |> J.map OperationsForTransaction
+    OperationsForTransaction oft ->
+      oftDecoder
+        |> J.map (\f -> { f | hash = oft.hash })
+        |> J.map OperationsForTransaction
     Operation _ -> opDecoder |> J.map Operation
     Errored err -> J.null (Errored err)
     Empty -> J.null Empty
