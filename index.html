@@ -6,6 +6,8 @@
 <body></body>
 <script src=elm.js></script>
 <script>
+var session = Math.random()
+
 const app = Elm.Main.fullscreen()
 
 app.ports.pushPage.subscribe(function ([pos, title, url]) {
@@ -13,13 +15,19 @@ app.ports.pushPage.subscribe(function ([pos, title, url]) {
     return
   }
   console.log('pushing to', pos)
-  history.pushState(pos, title, '/#' + url)
+  history.pushState({session: session, pos: pos}, title, '/#' + url)
 })
 
 app.ports.navigate.send(location.hash.slice(1))
+history.replaceState({session: session, pos: 2}, document.title, '/' + location.hash)
 
 window.onpopstate = function (e) {
-  let pos = e.state
+  if (e.state === null || e.state.session !== session) {
+    location.reload()
+    return
+  }
+
+  let pos = e.state.pos
   console.log('will surf to', pos)
   app.ports.surf.send(pos)
 }

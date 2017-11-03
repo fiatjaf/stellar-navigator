@@ -54,10 +54,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     GotThing pos result ->
-      let x = Debug.log "got on pos" pos
-          y = Debug.log "current" model.pos
-          z = Debug.log "things count" <| Array.length model.things
-      in case result of
+      case result of
         Err err ->
           ( { model | things = model.things |> Array.set pos (Errored err) }
           , Cmd.none
@@ -68,7 +65,7 @@ update msg model =
           )
     Navigate base_pos pathname ->
       ( { model
-          | pos = Debug.log "next_pos" <| base_pos + 1
+          | pos = base_pos + 1
           , things = model.things
             |> Array.slice 0 (base_pos + 1)
             |> Array.push Empty
@@ -124,7 +121,6 @@ view model =
         [ button [ class "button is-primary" ] [ text "ok" ]
         ]
       ]
-    , text <| toString model.pos
     , div [ class "main columns" ] <|
       let 
         before = Array.get (model.pos - 2) model.things |> withDefault Empty
