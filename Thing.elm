@@ -1,17 +1,19 @@
 module Thing exposing (..)
 
 import Html exposing
-  ( Html, text
+  ( Html, Attribute, text
   , h1, h2, div, textarea, button, p, a
   , table, tbody, thead, tr, th, td
   , input, select, option, header, nav
   , span, section, nav, img, label
   )
-import Http
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
+import Http
 import Task
 import Json.Decode as J
+import Hashbow
+import Color
 import Route exposing (..)
 
 
@@ -211,7 +213,11 @@ viewThing surf nav t =
 viewAddr : (String -> msg) -> Addr -> Html msg
 viewAddr nav addr =
   div []
-    [ h1 [ class "title", title addr.id ] [ text <| "Address " ++ (wrap addr.id) ]
+    [ h1
+      [ class "title"
+      , title addr.id
+      , titleColor addr.id "0.6"
+      ] [ text <| "Address " ++ (wrap addr.id) ]
     , table []
       [ tr []
         [ th [] [ text "id" ]
@@ -276,7 +282,10 @@ assetRow nav getter asset =
 viewTfA : (String -> msg) -> TfA -> Html msg
 viewTfA nav tfa =
   div []
-    [ h1 [ class "title is-4" ] [ text <| "Transactions for Address " ++ tfa.addr ]
+    [ h1
+      [ class "title is-4"
+      , titleColor tfa.addr "0.6"
+      ] [ text <| "Transactions for Address " ++ (wrap tfa.addr) ]
     , table []
       [ thead []
         [ tr []
@@ -307,7 +316,10 @@ shortTxnRow nav txn =
 viewTxn : (String -> msg) -> Txn -> Html msg
 viewTxn nav txn =
   div []
-    [ h1 [ class "title" ] [ text <| "Transaction " ++ (wrap txn.hash) ]
+    [ h1
+      [ class "title"
+      , titleColor txn.hash "0.6"
+      ] [ text <| "Transaction " ++ (wrap txn.hash) ]
     , table []
       [ tr []
         [ th [] [ text "hash" ]
@@ -347,7 +359,10 @@ viewTxn nav txn =
 viewOfT : (String -> msg) -> OfT -> Html msg
 viewOfT nav oft =
   div []
-    [ h1 [ class "title is-4" ] [ text <| "Operations for Transaction " ++ oft.hash ]
+    [ h1
+      [ class "title is-4"
+      , titleColor oft.hash "0.6"
+      ] [ text <| "Operations for Transaction " ++ (wrap oft.hash) ]
     , table []
       [ thead []
         [ tr []
@@ -376,7 +391,10 @@ shortOpRow nav op =
 viewOp : (String -> msg) -> Op -> Html msg
 viewOp nav op =
   div []
-    [ h1 [ class "title" ] [ text <| "Operation " ++ (wrap op.id) ]
+    [ h1
+      [ class "title"
+      , titleColor op.id "0.6"
+      ] [ text <| "Operation " ++ (wrap op.id) ]
     , table []
       [ tr []
         [ th [] [ text "source_account" ]
@@ -400,6 +418,19 @@ wrap str =
   then ""
   else (String.left 3 str) ++ "..." ++ (String.right 4 str)
     |> String.toLower
+
+titleColor : String -> String -> Attribute msg
+titleColor id alpha =
+  let 
+    s = (String.toLower id)
+    c = Hashbow.color 0.6 0.7 s
+    rgba = Color.toRgb c
+  in
+    style
+      [ ("background-color"
+        , "rgba(" ++ (toString rgba.red) ++ ", " ++ (toString rgba.green) ++ ", " ++ (toString rgba.blue) ++ ", " ++ alpha ++ ")"
+        )
+      ]
 
 errorFormat : Http.Error -> String
 errorFormat err =
