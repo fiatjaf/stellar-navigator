@@ -31,13 +31,12 @@ type alias Model =
   { pos : Int
   , things : Array Thing
   , error : String
-  , loading : String
   }
 
 
 init : (Model, Cmd Msg)
 init =
-  ( Model 1 (Array.fromList [ Empty, Empty ]) "" ""
+  ( Model 1 (Array.fromList [ Empty, Empty ]) ""
   , Cmd.none
   )
 

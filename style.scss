@@ -8,9 +8,9 @@ $primary: #7ebcf9;
 @import 'node_modules/bulma-badge/badge.sass';
 */
 
-html {
-  background: cadetblue;
-}
+html { background: cadetblue; }
+
+* { font-family: 'Maven Pro', sans-serif; }
 
 .top {
   margin: auto 40px;
@@ -57,6 +57,7 @@ html {
     text-overflow: clip;
   }
 
+  table { width: 100%; }
   thead th, tbody td { text-align: center; }
   table > tr > th {
     text-align: right;
@@ -80,4 +81,10 @@ html {
 
 .link {
   padding: 3px;
+}
+
+.asset-native {
+  font-size: 1.2em;
+  text-shadow: 0 0 25px #18de36cc;
+  line-height: 1.2em;
 }
