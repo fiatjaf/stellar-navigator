@@ -122,8 +122,13 @@ update msg model =
           <| GotThing model.testnet (pos + 1)
         )
     ToggleTestnet testnet ->
-      ( { model | testnet = Debug.log "testnet?" testnet }
-      , Cmd.none
+      ( { model
+          | testnet = Debug.log "testnet?" testnet
+          , last_ops = []
+          , last_txns = []
+          , last_leds = []
+        }
+      , sse <| base testnet
       )
     NewOperation op ->
       ( { model | last_ops = List.take 23 (op :: model.last_ops) }

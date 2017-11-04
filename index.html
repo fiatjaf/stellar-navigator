@@ -52,14 +52,19 @@ window.onpopstate = function (e) {
 }
 
 // eventsource calls for the last operations and last ledgers
+var sseops, ssetxns, sseleds
 app.ports.sse.subscribe(function (base) {
-  var sseops = new EventSource(base + '/operations?cursor=now&limit=23')
+  if (sseops) sseops.close()
+  if (ssetxns) ssetxns.close()
+  if (sseleds) sseleds.close()
+
+  sseops = new EventSource(base + '/operations?cursor=now&limit=23')
   sseops.onmessage = function (e) { app.ports.newop.send(e.data) }
 
-  var ssetxns = new EventSource(base + '/transactions?cursor=now&limit=23')
+  ssetxns = new EventSource(base + '/transactions?cursor=now&limit=23')
   ssetxns.onmessage = function (e) { app.ports.newtxn.send(e.data) }
 
-  var sseleds = new EventSource(base + '/ledgers?cursor=now&limit=23')
+  sseleds = new EventSource(base + '/ledgers?cursor=now&limit=23')
   sseleds.onmessage = function (e) { app.ports.newled.send(e.data) }
 })
 </script>
