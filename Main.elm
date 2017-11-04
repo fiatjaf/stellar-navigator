@@ -151,7 +151,7 @@ view model =
         , checked <| not model.testnet
         , onCheck ToggleTestnet
         ] []
-      , label [ for "toggle-testnet" ] [ text <| if model.testnet then "Test" else "Public" ]
+      , label [ for "toggle-testnet" ] [ text <| if model.testnet then "test" else "public" ]
       ]
     , div [ class "main columns" ] <|
       let 
@@ -164,7 +164,7 @@ view model =
           [ viewThing (Surf <| model.pos - 2) (Navigate (model.pos - 2)) before
           ]
         , div [ class "column is-hidden-mobile" ]
-          [ viewThing DoNothing (Navigate (model.pos - 1)) left
+          [ viewThing (Surf <| model.pos - 1) (Navigate (model.pos - 1)) left
           ]
         , div [ class "column" ]
           [ viewThing DoNothing (Navigate model.pos) right

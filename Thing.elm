@@ -193,28 +193,28 @@ viewThing : msg -> (String -> msg) -> (Thing, Bool) -> Html msg
 viewThing surf nav (t, testnet)  =
   let
     (kind, content) = case t of
-      Address addr -> ("addr", viewAddr nav addr)
-      TransactionsForAddress tfa -> ("addr", viewTfA nav tfa)
-      Transaction txn -> ("txn", viewTxn nav txn)
-      OperationsForTransaction oft -> ("txn", viewOfT nav oft)
-      Operation op -> ("op", viewOp nav op)
+      Address addr -> ("addr", viewAddr surf nav addr)
+      TransactionsForAddress tfa -> ("addr", viewTfA surf nav tfa)
+      Transaction txn -> ("txn", viewTxn surf nav txn)
+      OperationsForTransaction oft -> ("txn", viewOfT surf nav oft)
+      Operation op -> ("op", viewOp surf nav op)
       Empty -> ("empty", text "")
       Loading -> ("loading", loading)
       Errored err -> ("errored", text <| errorFormat err)
   in
     div
-      [ onClick surf
-      , class <| "box thing " ++ kind ++ (if testnet then " testnet" else "")
+      [ class <| "box thing " ++ kind ++ (if testnet then " testnet" else "")
       ] [ content ]
 
 
-viewAddr : (String -> msg) -> Addr -> Html msg
-viewAddr nav addr =
+viewAddr : msg -> (String -> msg) -> Addr -> Html msg
+viewAddr surf nav addr =
   div []
     [ h1
       [ class "title"
       , title addr.id
       , hashcolor addr.id
+      , onClick surf
       ] [ text <| "Address " ++ (wrap addr.id) ]
     , table []
       [ tr []
@@ -267,16 +267,17 @@ viewAddr nav addr =
 balanceRow : (String -> msg) -> (Balance -> String) -> Balance -> Html msg
 balanceRow nav getter balance =
   tr []
-    [ td [] [ viewAsset nav balance.asset ]
-    , td [] [ text <| getter balance ]
+    [ td [ class "singleline" ] [ viewAsset nav balance.asset ]
+    , td [ title <| getter balance, class "wrappable" ] [ text <| getter balance ]
     ]
 
-viewTfA : (String -> msg) -> TfA -> Html msg
-viewTfA nav tfa =
+viewTfA : msg -> (String -> msg) -> TfA -> Html msg
+viewTfA surf nav tfa =
   div []
     [ h1
       [ class "title is-4"
       , hashcolor tfa.addr
+      , onClick surf
       ] [ text <| "Transactions for Address " ++ (wrap tfa.addr) ]
     , table []
       [ thead []
@@ -296,17 +297,21 @@ shortTxnRow : (String -> msg) -> Txn -> Html msg
 shortTxnRow nav txn =
   tr []
     [ td [] [ txnlink nav txn.hash ]
-    , td [ class "date" ] [ text <| dateShort txn.created_at ]
+    , td
+      [ class "hideable"
+      , title <| date txn.created_at
+      ] [ text <| dateShort txn.created_at ]
     , td [] [ addrlink nav txn.source_account ]
     , td [] [ text <| toString txn.operation_count ]
     ]
 
-viewTxn : (String -> msg) -> Txn -> Html msg
-viewTxn nav txn =
+viewTxn : msg -> (String -> msg) -> Txn -> Html msg
+viewTxn surf nav txn =
   div []
     [ h1
       [ class "title"
       , hashcolor txn.hash
+      , onClick surf
       ] [ text <| "Transaction " ++ (wrap txn.hash) ]
     , table []
       [ tr []
@@ -340,12 +345,13 @@ viewTxn nav txn =
       ]
     ]
 
-viewOfT : (String -> msg) -> OfT -> Html msg
-viewOfT nav oft =
+viewOfT : msg -> (String -> msg) -> OfT -> Html msg
+viewOfT surf nav oft =
   div []
     [ h1
       [ class "title is-4"
       , hashcolor oft.hash
+      , onClick surf
       ] [ text <| "Operations for Transaction " ++ (wrap oft.hash) ]
     , table []
       [ thead []
@@ -368,12 +374,13 @@ shortOpRow nav op =
     , td [] [ addrlink nav op.source_account ]
     ]
 
-viewOp : (String -> msg) -> Op -> Html msg
-viewOp nav op =
+viewOp : msg -> (String -> msg) -> Op -> Html msg
+viewOp surf nav op =
   div []
     [ h1
       [ class "title"
       , hashcolor op.id
+      , onClick surf
       ]
       [ span [ class "emphasis" ] [ text op.type_ ]
       , text " operation"

@@ -82,7 +82,6 @@ html { background: cadetblue; }
 .main .column {
   .box {
     min-height: 400px;
-    max-height: 700px;
   }
 
   &:first-child, &:last-child {
@@ -153,6 +152,10 @@ html { background: cadetblue; }
     border-radius: 4px;
     overflow: hidden;
     text-overflow: clip;
+    cursor: pointer;
+    opacity: 0.9;
+
+    &:hover { opacity: 1; }
   }
 
   table { width: 100%; }
@@ -161,7 +164,7 @@ html { background: cadetblue; }
     text-align: right;
     padding-left: 0;
     &:after {
-      content: ': ';
+      content: ':';
     }
   }
   th, td { padding: 5px; }
@@ -169,11 +172,19 @@ html { background: cadetblue; }
   th + td { word-break: break-all; }
 }
 
-td.date {
-  text-align: center;
+td.hideable {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+td.wrappable {
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+td.singleline {
+  white-space: pre;
 }
 
 .emphasis {
@@ -188,6 +199,10 @@ td.date {
   padding: 3px;
 }
 
+.asset-issued {
+  .code { margin-right: 2px; }
+  a { font-size: 80%; }
+}
 .asset-native {
   font-size: 1.2em;
   text-shadow: 0 0 25px #8fbbb8;

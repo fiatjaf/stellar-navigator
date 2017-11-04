@@ -38,7 +38,5 @@ viewAsset nav asset =
     [ span [ class "code" ]
       [ text asset.code
       ]
-    , a [ onClick <| nav ("/addr/" ++ asset.issuer) ]
-      [ text <| wrap asset.issuer
-      ]
+    , addrlink nav asset.issuer
     ]
