@@ -309,12 +309,10 @@ viewThing surf nav (t, testnet)  =
 viewAddr : msg -> (String -> msg) -> Addr -> Html msg
 viewAddr surf nav addr =
   div []
-    [ h1
-      [ class "title"
-      , title addr.id
-      , hashcolor addr.id
-      , onClick surf
-      ] [ text <| "Address " ++ (wrap addr.id) ]
+    [ h1 [ class "title", onClick surf ]
+      [ text "Address "
+      , span [ title addr.id, hashcolor addr.id ] [ text <| wrap addr.id ]
+      ]
     , table []
       [ tr []
         [ th [] [ text "id" ]
@@ -373,11 +371,10 @@ balanceRow nav getter balance =
 viewTfA : msg -> (String -> msg) -> TfA -> Html msg
 viewTfA surf nav tfa =
   div []
-    [ h1
-      [ class "title is-4"
-      , hashcolor tfa.addr
-      , onClick surf
-      ] [ text <| "Transactions for Address " ++ (wrap tfa.addr) ]
+    [ h1 [ class "title is-3", onClick surf ]
+      [ text "Transactions for "
+      , span [ title tfa.addr, hashcolor tfa.addr ] [ text <| wrap tfa.addr ]
+      ]
     , table []
       [ thead []
         [ tr []
@@ -407,11 +404,10 @@ shortTxnRow nav txn =
 viewTxn : msg -> (String -> msg) -> Txn -> Html msg
 viewTxn surf nav txn =
   div []
-    [ h1
-      [ class "title"
-      , hashcolor txn.hash
-      , onClick surf
-      ] [ text <| "Transaction " ++ (wrap txn.hash) ]
+    [ h1 [ class "title", onClick surf ]
+      [ text "Transaction "
+      , span [ title txn.hash, hashcolor txn.hash ] [ text <| wrap txn.hash ]
+      ]
     , table []
       [ tr []
         [ th [] [ text "hash" ]
@@ -447,11 +443,10 @@ viewTxn surf nav txn =
 viewOfT : msg -> (String -> msg) -> OfT -> Html msg
 viewOfT surf nav oft =
   div []
-    [ h1
-      [ class "title is-4"
-      , hashcolor oft.hash
-      , onClick surf
-      ] [ text <| "Operations for Transaction " ++ (wrap oft.hash) ]
+    [ h1 [ class "title is-3", onClick surf ]
+      [ text "Operations for "
+      , span [ title oft.hash, hashcolor oft.hash ] [ text <| wrap oft.hash ]
+      ]
     , table []
       [ thead []
         [ tr []
@@ -476,13 +471,9 @@ shortOpRow nav op =
 viewOp : msg -> (String -> msg) -> Op -> Html msg
 viewOp surf nav op =
   div []
-    [ h1
-      [ class "title"
-      , hashcolor op.id
-      , onClick surf
-      ]
+    [ h1 [ class "title", onClick surf ]
       [ span [ class "emphasis" ] [ text op.type_ ]
-      , text " operation"
+      , span [ title op.id, hashcolor op.id ] [ text " Operation" ]
       ]
     , table []
       <| List.concat
@@ -518,12 +509,12 @@ shortLedRow nav led =
 
 viewLed : msg -> (String -> msg) -> Led -> Html msg
 viewLed surf nav led =
-  div []
-    [ h1
-      [ class "title"
-      , hashcolor <| toString led.sequence
-      , onClick surf
-      ] [ text <| "Ledger " ++ (toString led.sequence) ]
+  let seq = toString led.sequence
+  in div []
+    [ h1 [ class "title", onClick surf ]
+      [ span [] [ text "Ledger " ]
+      , span [ title seq, hashcolor seq ] [ text seq ]
+      ]
     , table []
       [ tr []
         [ th [] [ text "hash" ]
@@ -545,7 +536,7 @@ viewLed surf nav led =
         [ th [] [ text "transaction_count" ]
         , td []
           [ a
-            [ onClick (nav <| "/txnsforled/" ++ (toString led.sequence))
+            [ onClick (nav <| "/txnsforled/" ++ seq)
             ] [ text <| toString led.transaction_count ]
           ]
         ]
@@ -553,7 +544,7 @@ viewLed surf nav led =
         [ th [] [ text "operation_count" ]
         , td []
           [ a
-            [ onClick (nav <| "/opsforled/" ++ (toString led.sequence))
+            [ onClick (nav <| "/opsforled/" ++ seq)
             ] [ text <| toString led.operation_count ]
           ]
         ]
@@ -587,12 +578,12 @@ viewLed surf nav led =
 
 viewTfL : msg -> (String -> msg) -> TfL -> Html msg
 viewTfL surf nav tfl =
-  div []
-    [ h1
-      [ class "title is-4"
-      , hashcolor <| toString tfl.sequence
-      , onClick surf
-      ] [ text <| "Transactions for Ledger " ++ (toString tfl.sequence) ]
+  let seq = toString tfl.sequence
+  in div []
+    [ h1 [ class "title is-3", onClick surf ]
+      [ span [] [ text "Transactions for " ]
+      , span [ title seq, hashcolor seq ] [ text seq ]
+      ]
     , table []
       [ thead []
         [ tr []
@@ -609,12 +600,12 @@ viewTfL surf nav tfl =
 
 viewOfL : msg -> (String -> msg) -> OfL -> Html msg
 viewOfL surf nav ofl =
-  div []
-    [ h1
-      [ class "title is-4"
-      , hashcolor <| toString ofl.sequence
-      , onClick surf
-      ] [ text <| "Operations for Ledger " ++ (toString ofl.sequence) ]
+  let seq = toString ofl.sequence
+  in div []
+    [ h1 [ class "title is-3", onClick surf ]
+      [ span [] [ text "Operations for " ]
+      , span [ title seq, hashcolor seq ] [ text seq ]
+      ]
     , table []
       [ thead []
         [ tr []

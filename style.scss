@@ -131,25 +131,37 @@ html { background: cadetblue; }
   }
 }
 
+$addr: #6768D2;
+$op: #9E9E9E;
+$txn: #6ED379;
+$led: #D84249;
+$eff: #82FBFA;
+
+$addr-border: 3px outset;
+$op-border: 3px dotted;
+$txn-border: 3px double; 
+$led-border: 2px solid;
+$eff-border: unset;
+
 .box.thing {
-  background: ivory;
+  background: whitesmoke;
   overflow: hidden;
 
   padding: 0;
   & > div { margin: 15px; }
 
-  border: 10px solid white;
-  &.addr { border-color: lighten(#C3E5C1, 0.9); }
-  &.txn { border-color: lighten(#E5C4C1, 0.9); }
-  &.op { border-color: lighten(#C1CBE5, 0.9); }
-  &.eff { border-color: lighten(#E5E3C1, 0.9); }
-  &.led { border-color: lighten(#E5D7C1, 0.9); }
+  border-width: 10px !important;
+  &.addr { border: $addr-border lighten($addr, 0.8); }
+  &.txn { border: $txn-border lighten($txn, 0.8); }
+  &.op { border: $op-border lighten($op, 0.8); }
+  &.led { border: $led-border lighten($led, 0.8); }
+  &.eff { border: $eff-border lighten($eff, 0.8); }
 
-  &.addr:hover { border-color: darken(#C3E5C1, 0.5); }
-  &.txn:hover { border-color: darken(#E5C4C1, 0.5); }
-  &.op:hover { border-color: darken(#C1CBE5, 0.5); }
-  &.eff:hover { border-color: darken(#E5E3C1, 0.5); }
-  &.led:hover { border-color: darken(#E5D7C1, 0.5); }
+  &.addr:hover { border-color: $addr; }
+  &.txn:hover { border-color: $txn; }
+  &.op:hover { border-color: $op; }
+  &.eff:hover { border-color: $eff; }
+  &.led:hover { border-color: $led; }
 
   h1 {
     padding: 5px 8px;
@@ -158,9 +170,20 @@ html { background: cadetblue; }
     text-overflow: clip;
     cursor: pointer;
     opacity: 0.9;
+    text-align: center;
 
     &:hover { opacity: 1; }
   }
+}
+
+.link {
+  color: inherit;
+
+  &.addr { border: $addr-border $addr; }
+  &.op { border: $op-border $op; }
+  &.txn { border: $txn-border $txn; }
+  &.led { border: $led-border $led; }
+  &.eff { border: $eff-border $eff; }
 }
 
 table { width: 100%; }
