@@ -47,4 +47,13 @@ window.onpopstate = function (e) {
   console.log('will surf to', pos)
   app.ports.surf.send(pos)
 }
+
+// eventsource calls for the last operations and last ledgers
+app.ports.sse.subscribe(function (base) {
+  var sseops = new EventSource(base + '/operations')
+  sseops.onmessage = function (e) { app.ports.newop.send(e.data) }
+
+  var sseledgs = new EventSource(base + '/ledgers')
+  sseledgs.onmessage = function (e) { app.ports.newledg.send(e.data) }
+})
 </script>

@@ -12,6 +12,7 @@ import Tuple exposing (..)
 import Platform.Sub as Sub
 import Array exposing (Array)
 import Maybe exposing (withDefault)
+import Json.Decode as J
 
 import Ports exposing (..)
 import Thing exposing (..)
@@ -32,7 +33,7 @@ type alias Model =
   { pos : Int
   , things : Array (Thing, Bool)
   , testnet : Bool
-  , error : String
+  , last_ops : List Op
   }
 
 type alias Flags =
@@ -46,8 +47,8 @@ init flags =
     1
     (Array.fromList [ emptyThing, emptyThing ])
     flags.testnet
-    ""
-  , Cmd.none
+    []
+  , sse <| base flags.testnet
   )
 
 
@@ -59,7 +60,9 @@ type Msg
   | Refresh Int
   | Pasted String
   | ToggleTestnet Bool
-  | DoNothing
+  | NewOperation Op
+  -- | NewLedger Op
+  | DoNothing 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -117,6 +120,10 @@ update msg model =
       ( { model | testnet = Debug.log "testnet?" testnet }
       , Cmd.none
       )
+    NewOperation op ->
+      ( { model | last_ops = List.take 23 (op :: model.last_ops) }
+      , Cmd.none
+      )
     DoNothing ->
       ( model, Cmd.none )
 
@@ -127,14 +134,14 @@ subscriptions model =
   Sub.batch
     [ navigate (Navigate model.pos)
     , surf Surf
+    , newop <| J.decodeString opDecoder >> Result.withDefault defaultOp >> NewOperation 
     ]
 
 
 -- VIEW
 view : Model -> Html Msg
 view model =
-  if model.error /= "" then text model.error
-  else div []
+  div []
     [ div [ class "top columns is-mobile" ]
       [ div [ class "column is-12" ]
         [ input
@@ -173,4 +180,21 @@ view model =
           [ viewThing (Surf <| model.pos + 1) (Navigate (model.pos + 1)) after
           ]
         ]
+    , div [ class "live columns" ]
+      [ div [ class "column" ]
+        [ div [ class "box" ]
+          [ table []
+            [ thead []
+              [ tr []
+                [ th [] [ text "id" ]
+                , th [] [ text "type" ]
+                , th [] [ text "source_account" ]
+                ]
+              ]
+            , tbody []
+              <| List.map (shortOpRow <| Navigate model.pos) model.last_ops
+            ]
+          ]
+        ]
+      ]
     ]
