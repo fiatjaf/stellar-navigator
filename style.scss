@@ -19,60 +19,32 @@ html { background: cadetblue; }
 
 * { font-family: 'Maven Pro', sans-serif; }
 
+.navbar {
+  .navbar-brand {
+    font-family: Arial;
+    font-size: 23px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: cadetblue;
+
+    img {
+      margin-right: 3px;
+    }
+  }
+}
+
+.testnet-switch {
+  font-size: 1.4em;
+  font-weight: bold;
+  width: 105px;
+}
+
 .top {
   margin: 12px 40px;
 
   input {
     height: 3.3em;
   }
-}
-
-.testnet-switch {
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 18px;
-  background: white;
-  border-radius: 0 0 0 12px;
-  opacity: 0.4;
-
-  &:hover { opacity: 1; }
-
-  width: 146px;
-  -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
-
-  input { display: none; }
-  label {
-    display: block;
-    overflow: hidden;
-    cursor: pointer;
-    height: 33px;
-    padding: 0;
-    line-height: 29px;
-    border: 2px solid #E3E3E3;
-    border-radius: 36px;
-    transition: background-color 0.3s ease-in;
-    text-align: center;
-    font-weight: bold;
-    background-color: $warning;
-    color: #333;
-  }
-  label:before {
-    content: "";
-    display: block;
-    width: 46px;
-    height: 46px;
-    background: #FFFFFF;
-    position: absolute;
-    top: calc(50% - 23px);
-    right: 92px;
-    border: 2px solid #E3E3E3; border-radius: 72px;
-    transition: all 0.3s ease-in 0s; 
-  }
-  input:checked + label { background-color: $info; color: white; }
-  input:checked + label,
-  input:checked + label:before { border-color: $info; }
-  input:checked + label:before { right: 0px; }
 }
 
 .main {
@@ -150,7 +122,7 @@ $led-border: 2px solid;
 $eff-border: unset;
 
 .box.thing {
-  background: whitesmoke;
+  background: white;
   overflow: hidden;
 
   padding: 0;

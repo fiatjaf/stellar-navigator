@@ -3,10 +3,10 @@ import Html exposing
   , h1, h2, div, textarea, button, p, a
   , table, tbody, thead, tr, th, td
   , input, select, option, header, nav
-  , span, section, nav, img, label
+  , span, section, nav, img, label, img
   )
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, onCheck)
+import Html.Events exposing (onClick, onInput)
 import Http
 import Tuple exposing (..)
 import Platform.Sub as Sub
@@ -63,7 +63,7 @@ type Msg
   | Surf Int
   | Refresh Int
   | Pasted String
-  | ToggleTestnet Bool
+  | ToggleTestnet
   | NewOperation Op
   | NewTransaction Txn
   | NewLedger Led
@@ -121,14 +121,14 @@ update msg model =
         , fetch (base model.testnet) pathname
           <| GotThing model.testnet (pos + 1)
         )
-    ToggleTestnet testnet ->
+    ToggleTestnet ->
       ( { model
-          | testnet = testnet
+          | testnet = not model.testnet
           , last_ops = []
           , last_txns = []
           , last_leds = []
         }
-      , sse <| base testnet
+      , sse <| base (not model.testnet)
       )
     NewOperation op ->
       ( { model | last_ops = List.take 23 (op :: model.last_ops) }
@@ -162,7 +162,28 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   div []
-    [ div [ class "top columns is-mobile" ]
+    [ div [ class "navbar" ]
+      [ div [ class "navbar-brand" ]
+        [ a [ class "navbar-item", href "" ]
+          [ img [ src "/logo.png" ] []
+          , text "Stellar Navigator"
+          ]
+        ]
+      , div [ class "navbar-menu is-active" ]
+        [ div [ class "navbar-start" ] []
+        , div [ class "navbar-end" ]
+          [ div [ class "navbar-item" ]
+            [ button
+              [ class
+                <| "testnet-switch button " ++
+                   (if model.testnet then "is-warning" else "is-primary")
+              , onClick ToggleTestnet
+              ] [ text <| if model.testnet then "test" else "public" ]
+            ]
+          ]
+        ]
+      ]
+    , div [ class "top columns is-mobile" ]
       [ div [ class "column is-12" ]
         [ input
           [ class "input"
@@ -170,15 +191,6 @@ view model =
           , onInput Pasted
           ] []
         ]
-      ]
-    , div [ class "testnet-switch" ]
-      [ input
-        [ type_ "checkbox"
-        , id "toggle-testnet"
-        , checked <| not model.testnet
-        , onCheck ToggleTestnet
-        ] []
-      , label [ for "toggle-testnet" ] [ text <| if model.testnet then "test" else "public" ]
       ]
     , div [ class "main columns" ] <|
       let 
