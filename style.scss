@@ -131,6 +131,12 @@ html { background: cadetblue; }
   }
 }
 
+.box.errored {
+  font-family: monospace;
+  font-size: 20px;
+  padding: 18px !important;
+}
+
 $addr: #6768D2;
 $op: #9E9E9E;
 $txn: #6ED379;

@@ -123,7 +123,7 @@ update msg model =
         )
     ToggleTestnet testnet ->
       ( { model
-          | testnet = Debug.log "testnet?" testnet
+          | testnet = testnet
           , last_ops = []
           , last_txns = []
           , last_leds = []
@@ -190,10 +190,10 @@ view model =
         [ div [ class "column is-2 is-hidden-touch" ]
           [ viewThing (Surf <| model.pos - 2) (Navigate (model.pos - 2)) before
           ]
-        , div [ class "column is-hidden-mobile" ]
+        , div [ class "column is-4 is-hidden-mobile" ]
           [ viewThing (Surf <| model.pos - 1) (Navigate (model.pos - 1)) left
           ]
-        , div [ class "column" ]
+        , div [ class "column is-4" ]
           [ viewThing DoNothing (Navigate model.pos) right
           ]
         , div [ class "column is-2 is-hidden-touch" ]

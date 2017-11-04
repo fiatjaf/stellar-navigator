@@ -39,7 +39,7 @@ routes = router
   ] 
 
 match : String -> Thing
-match = Debug.log "matching" >> Route.match routes >> Debug.log "matched" >> Maybe.withDefault Empty
+match = Route.match routes >> Maybe.withDefault Empty
 
 fetch : String -> String -> (Result Http.Error Thing -> msg) -> Cmd msg
 fetch base pathname hmsg =
