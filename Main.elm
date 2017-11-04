@@ -82,7 +82,7 @@ update msg model =
       in
         update (Navigate model.pos pathname) model
     Surf pos ->
-      ( { model | pos = Debug.log "surfing to" pos }
+      ( { model | pos = Debug.log "surfing to" ( if pos <= 1 then 1 else pos ) }
       , Cmd.none
       )
     Refresh pos ->

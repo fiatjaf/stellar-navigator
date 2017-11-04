@@ -1,4 +1,11 @@
 $primary: #7ebcf9;
+$size-1: 3em !default;
+$size-2: 2.5em !default;
+$size-3: 2em !default;
+$size-4: 1.5em !default;
+$size-5: 1.25em !default;
+$size-6: 1em !default;
+$size-7: 0.75em !default;
 
 @import 'node_modules/bulma/bulma.sass';
 
@@ -13,7 +20,11 @@ html { background: cadetblue; }
 * { font-family: 'Maven Pro', sans-serif; }
 
 .top {
-  margin: auto 40px;
+  margin: 12px 40px;
+
+  input {
+    height: 3.3em;
+  }
 }
 
 .main {
@@ -30,25 +41,46 @@ html { background: cadetblue; }
     .box {
       min-height: 200px;
       max-height: 400px;
+      cursor: pointer;
     }
 
+    .title { margin-bottom: 0.5em; }
+
     margin-top: 100px;
-    font-size: 80%;
+    font-size: 50%;
+  }
+  
+  &:not(:nth-child(3)) .box {
+    opacity: 0.9;
+
+    &:hover { opacity: 1; }
   }
 }
 
-.box.empty { opacity: 0.3; }
+.box.empty {
+  opacity: 0.3 !important;
+  &:hover { opacity: 0.8 !important; }
+}
 
 .box.thing {
   background: ivory;
   overflow: hidden;
-  padding: 15px;
 
-  &.addr { border: 10px solid lighten(#C3E5C1, 0.9); }
-  &.txn { border: 10px solid lighten(#E5C4C1, 0.9); }
-  &.op { border: 10px solid lighten(#C1CBE5, 0.9); }
-  &.eff { border: 10px solid lighten(#E5E3C1, 0.9); }
-  &.ledg { border: 10px solid lighten(#E5D7C1, 0.9); }
+  padding: 0;
+  & > div { margin: 15px; }
+
+  border: 10px solid white;
+  &.addr { border-color: lighten(#C3E5C1, 0.9); }
+  &.txn { border-color: lighten(#E5C4C1, 0.9); }
+  &.op { border-color: lighten(#C1CBE5, 0.9); }
+  &.eff { border-color: lighten(#E5E3C1, 0.9); }
+  &.ledg { border-color: lighten(#E5D7C1, 0.9); }
+
+  &.addr:hover { border-color: darken(#C3E5C1, 0.5); }
+  &.txn:hover { border-color: darken(#E5C4C1, 0.5); }
+  &.op:hover { border-color: darken(#C1CBE5, 0.5); }
+  &.eff:hover { border-color: darken(#E5E3C1, 0.5); }
+  &.ledg:hover { border-color: darken(#E5D7C1, 0.5); }
 
   h1 {
     padding: 5px 8px;

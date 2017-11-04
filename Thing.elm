@@ -225,7 +225,7 @@ viewAddr nav addr =
           [ table [ class "table is-hoverable is-fullwidth" ]
             [ thead []
               [ tr []
-                [ th [] [ text "name" ]
+                [ th [] [ text "asset" ]
                 , th [] [ text "amount" ]
                 ]
               ]
