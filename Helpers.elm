@@ -57,7 +57,6 @@ errorFormat err =
 addrlink = link "addr"
 txnlink = link "txn"
 oplink = link "op"
-ledglink = link "ledg"
 efflink = link "eff"
 
 link : String -> (String -> msg) -> String -> Html msg
@@ -69,6 +68,15 @@ link kind nav id =
     , hashcolor id
     ] [ text <| wrap id ]
 
+ledlink : (String -> msg) -> Int -> Html msg
+ledlink nav seq =
+  a
+    [ onClick <| nav ("/led/" ++ (toString seq))
+    , title <| toString seq
+    , class <| "link led"
+    , hashcolor (toString seq)
+    ] [ text <| toString seq ]
+
 
 identifierKind : String -> String
 identifierKind identifier =
@@ -79,9 +87,8 @@ identifierKind identifier =
     if len == 56 then "addr"
     else if len == 64 then "txn"
     else if int == 0 then ""
-    else if int < 100000000 then "ledg"
+    else if int < 100000000 then "led"
     else "op"
-    
 
 date : String -> String
 date
@@ -94,6 +101,12 @@ dateShort
   = Date.fromString
   >> Result.withDefault (Date.fromTime 0)
   >> Date.Format.format "%b %e %Y, %H:%M"
+
+time : String -> String
+time
+  = Date.fromString
+  >> Result.withDefault (Date.fromTime 0)
+  >> Date.Format.format "%I:%M:%S %p"
 
 
 loading : Html msg

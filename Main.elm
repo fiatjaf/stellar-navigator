@@ -34,6 +34,8 @@ type alias Model =
   , things : Array (Thing, Bool)
   , testnet : Bool
   , last_ops : List Op
+  , last_txns : List Txn
+  , last_leds : List Led
   }
 
 type alias Flags =
@@ -48,6 +50,8 @@ init flags =
     (Array.fromList [ emptyThing, emptyThing ])
     flags.testnet
     []
+    []
+    []
   , sse <| base flags.testnet
   )
 
@@ -61,7 +65,8 @@ type Msg
   | Pasted String
   | ToggleTestnet Bool
   | NewOperation Op
-  -- | NewLedger Op
+  | NewTransaction Txn
+  | NewLedger Led
   | DoNothing 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -124,6 +129,14 @@ update msg model =
       ( { model | last_ops = List.take 23 (op :: model.last_ops) }
       , Cmd.none
       )
+    NewTransaction txn ->
+      ( { model | last_txns = List.take 23 (txn :: model.last_txns) }
+      , Cmd.none
+      )
+    NewLedger led ->
+      ( { model | last_leds = List.take 23 (led :: model.last_leds) }
+      , Cmd.none
+      )
     DoNothing ->
       ( model, Cmd.none )
 
@@ -134,7 +147,9 @@ subscriptions model =
   Sub.batch
     [ navigate (Navigate model.pos)
     , surf Surf
-    , newop <| J.decodeString opDecoder >> Result.withDefault defaultOp >> NewOperation 
+    , newop <| J.decodeString opDecoder >> Result.withDefault defaultOp >> NewOperation
+    , newtxn <| J.decodeString txnDecoder >> Result.withDefault defaultTxn >> NewTransaction
+    , newled <| J.decodeString ledDecoder >> Result.withDefault defaultLed >> NewLedger
     ]
 
 
@@ -183,16 +198,51 @@ view model =
     , div [ class "live columns" ]
       [ div [ class "column" ]
         [ div [ class "box" ]
-          [ table []
+          [ h1 [ class "title is-4" ] [ text "last operations" ]
+          , table []
             [ thead []
               [ tr []
                 [ th [] [ text "id" ]
                 , th [] [ text "type" ]
-                , th [] [ text "source_account" ]
+                , th [] [ text "source" ]
                 ]
               ]
             , tbody []
               <| List.map (shortOpRow <| Navigate model.pos) model.last_ops
+            ]
+          ]
+        ]
+      , div [ class "column" ]
+        [ div [ class "box" ]
+          [ h1 [ class "title is-4" ] [ text "last transactions" ]
+          , table []
+            [ thead []
+              [ tr []
+                [ th [] [ text "hash" ]
+                , th [] [ text "time" ]
+                , th [] [ text "source" ]
+                , th [] [ text "ops" ]
+                ]
+              ]
+            , tbody []
+              <| List.map (shortTxnRow <| Navigate model.pos) model.last_txns
+            ]
+          ]
+        ]
+      , div [ class "column" ]
+        [ div [ class "box" ]
+          [ h1 [ class "title is-4" ] [ text "last ledgers closed" ]
+          , table []
+            [ thead []
+              [ tr []
+                [ th [] [ text "seq" ]
+                , th [] [ text "time" ]
+                , th [] [ text "txns" ]
+                , th [] [ text "ops" ]
+                ]
+              ]
+            , tbody []
+              <| List.map (shortLedRow <| Navigate model.pos) model.last_leds
             ]
           ]
         ]

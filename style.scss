@@ -79,7 +79,9 @@ html { background: cadetblue; }
   margin: auto 20px;
 }
 
-.live {}
+.live {
+  margin: auto 32px;
+}
 
 .main .column {
   .box {
@@ -141,13 +143,13 @@ html { background: cadetblue; }
   &.txn { border-color: lighten(#E5C4C1, 0.9); }
   &.op { border-color: lighten(#C1CBE5, 0.9); }
   &.eff { border-color: lighten(#E5E3C1, 0.9); }
-  &.ledg { border-color: lighten(#E5D7C1, 0.9); }
+  &.led { border-color: lighten(#E5D7C1, 0.9); }
 
   &.addr:hover { border-color: darken(#C3E5C1, 0.5); }
   &.txn:hover { border-color: darken(#E5C4C1, 0.5); }
   &.op:hover { border-color: darken(#C1CBE5, 0.5); }
   &.eff:hover { border-color: darken(#E5E3C1, 0.5); }
-  &.ledg:hover { border-color: darken(#E5D7C1, 0.5); }
+  &.led:hover { border-color: darken(#E5D7C1, 0.5); }
 
   h1 {
     padding: 5px 8px;
@@ -159,20 +161,20 @@ html { background: cadetblue; }
 
     &:hover { opacity: 1; }
   }
-
-  table { width: 100%; }
-  thead th, tbody td { text-align: center; }
-  table > tr > th {
-    text-align: right;
-    padding-left: 0;
-    &:after {
-      content: ':';
-    }
-  }
-  th, td { padding: 5px; }
-  .table th, .table td { padding: 2px 5px; }
-  th + td { word-break: break-all; }
 }
+
+table { width: 100%; }
+thead th, tbody td { text-align: center; }
+table > tr > th {
+  text-align: right;
+  padding-left: 0;
+  &:after {
+    content: ':';
+  }
+}
+th, td { padding: 5px; }
+.table th, .table td { padding: 2px 5px; }
+th + td { word-break: break-all; }
 
 td.hideable {
   overflow: hidden;

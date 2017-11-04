@@ -30,6 +30,8 @@ routes = router
     <| static "opsfortxn" </> string
   , route (Operation << \s -> { defaultOp | id = s })
     <| static "op" </> string
+  , route (Ledger << \s -> { defaultLed | sequence = s })
+    <| static "led" </> int
   ] 
 
 match : String -> Thing
@@ -55,6 +57,7 @@ type Thing
   | Transaction Txn
   | OperationsForTransaction OfT
   | Operation Op
+  | Ledger Led
   | Empty
   | Loading
   | Errored Http.Error
@@ -72,6 +75,7 @@ thingUrl thing =
     OperationsForTransaction oft ->
       "/transactions/" ++ oft.hash ++ "/operations"
     Operation op -> "/operations/" ++ op.id
+    Ledger led -> "/ledgers/" ++ (toString led.sequence)
     Empty -> ""
     Loading -> ""
     Errored _ -> ""
@@ -90,6 +94,7 @@ thingDecoder thing =
         |> J.map (\f -> { f | hash = oft.hash })
         |> J.map OperationsForTransaction
     Operation _ -> opDecoder |> J.map Operation
+    Ledger _ -> ledDecoder |> J.map Ledger
     Errored err -> J.null (Errored err)
     Loading -> J.null Loading
     Empty -> J.null Empty
@@ -176,17 +181,62 @@ type alias Op =
   , source_account : String
   , type_ : String
   , data : OpData
+  , txn : String
   }
 
-defaultOp = Op "" "" "" None
+defaultOp = Op "" "" "" None ""
 
 opDecoder : J.Decoder Op
 opDecoder =
-  J.map4 Op
+  J.map5 Op
     ( J.field "id" J.string )
     ( J.field "source_account" J.string )
     ( J.field "type" J.string )
     ( opDataDecoder )
+    ( J.at [ "_links", "transaction", "href" ] J.string
+      |> J.map (String.split "/" >> List.reverse >> List.head >> Maybe.withDefault "")
+    )
+
+
+type alias Led =
+  { sequence : Int
+  , hash : String
+  , transaction_count : Int
+  , operation_count : Int
+  , closed_at : String
+  , network : LedNetwork
+  }
+
+type alias LedNetwork =
+  { total_coins : String
+  , fee_pool : String
+  , base_fee : Int
+  , base_reserve : String
+  , max_tx_set_size : Int
+  , protocol_version : Int
+  }
+
+defaultLed = Led 0 "" 0 0 "" (LedNetwork "" "" 0 "" 0 0)
+
+networkDecoder : J.Decoder LedNetwork
+networkDecoder =
+  J.map6 LedNetwork
+    ( J.field "total_coins" J.string )
+    ( J.field "fee_pool" J.string )
+    ( J.field "base_fee" J.int )
+    ( J.field "base_reserve" J.string )
+    ( J.field "max_tx_set_size" J.int )
+    ( J.field "protocol_version" J.int )
+
+ledDecoder : J.Decoder Led
+ledDecoder =
+  J.map6 Led
+    ( J.field "sequence" J.int )
+    ( J.field "hash" J.string )
+    ( J.field "transaction_count" J.int )
+    ( J.field "operation_count" J.int )
+    ( J.field "closed_at" J.string )
+    ( networkDecoder )
 
 
 viewThing : msg -> (String -> msg) -> (Thing, Bool) -> Html msg
@@ -198,6 +248,7 @@ viewThing surf nav (t, testnet)  =
       Transaction txn -> ("txn", viewTxn surf nav txn)
       OperationsForTransaction oft -> ("txn", viewOfT surf nav oft)
       Operation op -> ("op", viewOp surf nav op)
+      Ledger led -> ("led", viewLed surf nav led)
       Empty -> ("empty", text "")
       Loading -> ("loading", loading)
       Errored err -> ("errored", text <| errorFormat err)
@@ -285,7 +336,7 @@ viewTfA surf nav tfa =
           [ th [] [ text "hash" ]
           , th [] [ text "time" ]
           , th [] [ text "source" ]
-          , th [] [ text "operations" ]
+          , th [] [ text "ops" ]
           ]
         ]
       , tbody []
@@ -320,7 +371,7 @@ viewTxn surf nav txn =
         ]
       , tr []
         [ th [] [ text "ledger" ]
-        , td [] [ text <| toString txn.ledger ]
+        , td [] [ ledlink nav txn.ledger ]
         ]
       , tr []
         [ th [] [ text "created_at" ]
@@ -331,7 +382,7 @@ viewTxn surf nav txn =
         , td [] [ addrlink nav txn.source_account ]
         ]
       , tr []
-        [ th [] [ text "op" ]
+        [ th [] [ text "ops" ]
         , td []
           [ a
             [ onClick (nav <| "/opsfortxn/" ++ txn.hash)
@@ -358,7 +409,7 @@ viewOfT surf nav oft =
         [ tr []
           [ th [] [ text "id" ]
           , th [] [ text "type" ]
-          , th [] [ text "source_account" ]
+          , th [] [ text "source" ]
           ]
         ]
       , tbody []
@@ -388,6 +439,10 @@ viewOp surf nav op =
     , table []
       <| List.concat
         [ [ tr []
+            [ th [] [ text "transaction" ]
+            , td [] [ txnlink nav op.txn ]
+            ]
+          , tr []
             [ th [] [ text "id" ]
             , td [] [ text <| String.toLower op.id ]
             ]
@@ -400,3 +455,83 @@ viewOp surf nav op =
         ]
     ]
 
+shortLedRow : (String -> msg) -> Led -> Html msg
+shortLedRow nav led =
+  tr []
+    [ td [] [ ledlink nav led.sequence ]
+    , td
+      [ class "hideable"
+      , title <| date led.closed_at
+      ] [ text <| time led.closed_at ]
+    , td [] [ text <| toString led.transaction_count ]
+    , td [] [ text <| toString led.operation_count ]
+    ]
+
+
+viewLed : msg -> (String -> msg) -> Led -> Html msg
+viewLed surf nav led =
+  div []
+    [ h1
+      [ class "title"
+      , hashcolor <| toString led.sequence
+      , onClick surf
+      ] [ text <| "Ledger " ++ (toString led.sequence) ]
+    , table []
+      [ tr []
+        [ th [] [ text "hash" ]
+        , td [] [ text <| led.hash ]
+        ]
+      , tr []
+        [ th [] [ text "previous" ]
+        , td [] [ ledlink nav (led.sequence - 1) ]
+        ]
+      , tr []
+        [ th [] [ text "next" ]
+        , td [] [ ledlink nav (led.sequence + 1) ]
+        ]
+      , tr []
+        [ th [] [ text "closed_at" ]
+        , td [] [ text <| date led.closed_at ]
+        ]
+      , tr []
+        [ th [] [ text "transaction_count" ]
+        , td []
+          [ a
+            [ onClick (nav <| "/txnsforled/" ++ (toString led))
+            ] [ text <| toString led.transaction_count ]
+          ]
+        ]
+      , tr []
+        [ th [] [ text "operation_count" ]
+        , td []
+          [ a
+            [ onClick (nav <| "/opsforled/" ++ (toString led))
+            ] [ text <| toString led.operation_count ]
+          ]
+        ]
+      , tr []
+        [ th [] [ text "total_coins" ]
+        , td [] [ text led.network.total_coins ]
+        ]
+      , tr []
+        [ th [] [ text "fee_pool" ]
+        , td [] [ text led.network.fee_pool ]
+        ]
+      , tr []
+        [ th [] [ text "base_fee" ]
+        , td [] [ text <| toString led.network.base_fee ]
+        ]
+      , tr []
+        [ th [] [ text "base_reserve" ]
+        , td [] [ text led.network.base_reserve ]
+        ]
+      , tr []
+        [ th [] [ text "max_tx_set_size" ]
+        , td [] [ text <| toString led.network.max_tx_set_size ]
+        ]
+      , tr []
+        [ th [] [ text "protocol_version" ]
+        , td [] [ text <| toString led.network.protocol_version ]
+        ]
+      ]
+    ]

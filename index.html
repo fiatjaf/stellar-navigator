@@ -30,11 +30,14 @@ app.ports.pushPage.subscribe(function ([testnet, pos, title, url]) {
   history.pushState(state, title, url)
 })
 
-app.ports.navigate.send(location.hash.slice(1))
-history.replaceState({
-  session: session,
-  pos: 2
-}, document.title, (testnet ? '/testnet/' : '/') + location.hash)
+if (location.hash.split('/').length > 2) {
+  app.ports.navigate.send(location.hash.slice(1))
+
+  history.replaceState({
+    session: session,
+    pos: 2
+  }, document.title, (testnet ? '/testnet/' : '/') + location.hash)
+}
   
 
 window.onpopstate = function (e) {
@@ -50,10 +53,13 @@ window.onpopstate = function (e) {
 
 // eventsource calls for the last operations and last ledgers
 app.ports.sse.subscribe(function (base) {
-  var sseops = new EventSource(base + '/operations')
+  var sseops = new EventSource(base + '/operations?cursor=now&limit=23')
   sseops.onmessage = function (e) { app.ports.newop.send(e.data) }
 
-  var sseledgs = new EventSource(base + '/ledgers')
-  sseledgs.onmessage = function (e) { app.ports.newledg.send(e.data) }
+  var ssetxns = new EventSource(base + '/transactions?cursor=now&limit=23')
+  ssetxns.onmessage = function (e) { app.ports.newtxn.send(e.data) }
+
+  var sseleds = new EventSource(base + '/ledgers?cursor=now&limit=23')
+  sseleds.onmessage = function (e) { app.ports.newled.send(e.data) }
 })
 </script>
