@@ -57,13 +57,13 @@ html { background: cadetblue; }
 
 .main .column {
   .box {
-    min-height: 400px;
+    min-height: 800px;
   }
 
   &:first-child, &:last-child {
     .box {
-      min-height: 200px;
-      max-height: 400px;
+      min-height: 400px;
+      max-height: 800px;
       cursor: pointer;
     }
 
@@ -212,4 +212,12 @@ td.singleline {
   font-size: 1.2em;
   text-shadow: 0 0 25px #8fbbb8;
   line-height: 1.2em;
+}
+
+footer {
+  margin-top: 37px;
+  padding: 12px 43px;
+  background-color: whitesmoke;
+  color: #333;
+  font-size: 18px;
 }

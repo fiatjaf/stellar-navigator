@@ -1,6 +1,7 @@
 import Html exposing
   ( Html, text
-  , h1, h2, div, textarea, button, p, a
+  , div, footer
+  , h1, h2, textarea, button, p, a
   , table, tbody, thead, tr, th, td
   , input, select, option, header, nav
   , span, section, nav, img, label, img
@@ -260,6 +261,22 @@ view model =
               ]
             , tbody []
               <| List.map (shortLedRow <| Navigate model.pos) model.last_leds
+            ]
+          ]
+        ]
+      ]
+    , footer []
+      [ div [ class "container" ]
+        [ div [ class "columns" ]
+          [ div [ class "column" ]
+            [ a [ href "https://fiatjaf.alhur.es/" ] [ text "fiatjaf" ]
+            , text " 2017"
+            ]
+          , div [ class "column has-text-centered" ]
+            [ a [ href "https://github.com/fiatjaf/stellar-navigator" ] [ text "GitHub" ]
+            ]
+          , div [ class "column has-text-right" ]
+            [ a [ href "https://debtmoney.xyz/" ] [ text "debtmoney.xyz" ]
             ]
           ]
         ]
