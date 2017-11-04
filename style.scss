@@ -169,6 +169,13 @@ html { background: cadetblue; }
   th + td { word-break: break-all; }
 }
 
+td.date {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .emphasis {
   font-size: 1.2em;
   line-height: 1.2em;

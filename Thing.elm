@@ -283,7 +283,8 @@ viewTfA nav tfa =
         [ tr []
           [ th [] [ text "hash" ]
           , th [] [ text "time" ]
-          , th [] [ text "source_account" ]
+          , th [] [ text "source" ]
+          , th [] [ text "operations" ]
           ]
         ]
       , tbody []
@@ -295,8 +296,9 @@ shortTxnRow : (String -> msg) -> Txn -> Html msg
 shortTxnRow nav txn =
   tr []
     [ td [] [ txnlink nav txn.hash ]
-    , td [] [ text <| date txn.created_at ]
+    , td [ class "date" ] [ text <| dateShort txn.created_at ]
     , td [] [ addrlink nav txn.source_account ]
+    , td [] [ text <| toString txn.operation_count ]
     ]
 
 viewTxn : (String -> msg) -> Txn -> Html msg
@@ -324,7 +326,7 @@ viewTxn nav txn =
         , td [] [ addrlink nav txn.source_account ]
         ]
       , tr []
-        [ th [] [ text "operations" ]
+        [ th [] [ text "op" ]
         , td []
           [ a
             [ onClick (nav <| "/opsfortxn/" ++ txn.hash)

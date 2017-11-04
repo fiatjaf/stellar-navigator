@@ -87,7 +87,13 @@ date : String -> String
 date
   = Date.fromString
   >> Result.withDefault (Date.fromTime 0)
-  >> Date.Format.format "%B %e, %Y, %I:%M %p"
+  >> Date.Format.format "%B %e, %Y, %I:%M:%S %p"
+
+dateShort : String -> String
+dateShort
+  = Date.fromString
+  >> Result.withDefault (Date.fromTime 0)
+  >> Date.Format.format "%b %e %Y, %H:%M"
 
 
 loading : Html msg
