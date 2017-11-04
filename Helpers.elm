@@ -12,6 +12,8 @@ import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Http
 import Hashbow
 import Color
+import Date
+import Date.Format
 
 wrap : String -> String
 wrap str =
@@ -72,3 +74,9 @@ identifierKind identifier =
     else if int < 100000000 then "ledg"
     else "op"
     
+
+date : String -> String
+date
+  = Date.fromString
+  >> Result.withDefault (Date.fromTime 0)
+  >> Date.Format.format "%B %e, %Y, %I:%M %p"

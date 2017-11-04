@@ -37,7 +37,10 @@ html {
   }
 }
 
+.box.empty { opacity: 0.3; }
+
 .box.thing {
+  background: ivory;
   overflow: hidden;
   padding: 15px;
 
@@ -48,13 +51,13 @@ html {
   &.ledg { border: 10px solid lighten(#E5D7C1, 0.9); }
 
   h1 {
-    padding: 7px;
+    padding: 5px 8px;
     border-radius: 4px;
     overflow: hidden;
     text-overflow: clip;
   }
 
-  thead th { text-align: center; }
+  thead th, tbody td { text-align: center; }
   table > tr > th {
     text-align: right;
     padding-left: 0;
@@ -64,9 +67,7 @@ html {
   }
   th, td { padding: 5px; }
   .table th, .table td { padding: 2px 5px; }
-  th + td {
-    word-break: break-all;
-  }
+  th + td { word-break: break-all; }
 }
 
 .emphasis {

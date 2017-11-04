@@ -289,7 +289,7 @@ shortTxnRow : (String -> msg) -> Txn -> Html msg
 shortTxnRow nav txn =
   tr []
     [ td [] [ txnlink nav txn.hash ]
-    , td [] [ text txn.created_at ]
+    , td [] [ text <| date txn.created_at ]
     , td [] [ addrlink nav txn.source_account ]
     ]
 
@@ -311,7 +311,7 @@ viewTxn nav txn =
         ]
       , tr []
         [ th [] [ text "created_at" ]
-        , td [] [ text txn.created_at ]
+        , td [] [ text <| date txn.created_at ]
         ]
       , tr []
         [ th [] [ text "source_account" ]
