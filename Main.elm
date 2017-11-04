@@ -6,8 +6,9 @@ import Html exposing
   , span, section, nav, img, label
   )
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
+import Html.Events exposing (onClick, onInput, onCheck)
 import Http
+import Tuple exposing (..)
 import Platform.Sub as Sub
 import Array exposing (Array)
 import Maybe exposing (withDefault)
@@ -18,7 +19,7 @@ import Helpers exposing (..)
 
 
 main =
-  Html.program
+  Html.programWithFlags
     { init = init
     , view = view
     , update = update
@@ -29,38 +30,52 @@ main =
 -- MODEL
 type alias Model =
   { pos : Int
-  , things : Array Thing
+  , things : Array (Thing, Bool)
+  , testnet : Bool
   , error : String
   }
 
+type alias Flags =
+  { testnet : Bool
+  }
 
-init : (Model, Cmd Msg)
-init =
-  ( Model 1 (Array.fromList [ Empty, Empty ]) ""
+
+init : Flags -> (Model, Cmd Msg)
+init flags =
+  ( Model
+    1
+    (Array.fromList [ emptyThing, emptyThing ])
+    flags.testnet
+    ""
   , Cmd.none
   )
 
 
 -- UPDATE
 type Msg
-  = GotThing Int (Result Http.Error Thing)
+  = GotThing Bool Int (Result Http.Error Thing)
   | Navigate Int String
   | Surf Int
   | Refresh Int
   | Pasted String
+  | ToggleTestnet Bool
   | DoNothing
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    GotThing pos result ->
+    GotThing testnet pos result ->
       case result of
         Err err ->
-          ( { model | things = model.things |> Array.set pos (Errored err) }
+          ( { model | things = model.things
+              |> Array.set pos (Errored err, testnet)
+            }
           , Cmd.none
           )
         Ok thing ->
-          ( { model | things = model.things |> Array.set pos (Debug.log "thing" thing) }
+          ( { model | things = model.things
+              |> Array.set pos (thing, testnet)
+            }
           , Cmd.none
           )
     Navigate base_pos pathname ->
@@ -68,11 +83,12 @@ update msg model =
           | pos = base_pos + 1
           , things = model.things
             |> Array.slice 0 (base_pos + 1)
-            |> Array.push Loading
+            |> Array.push loadingThing
         }
       , Cmd.batch
-        [ fetch pathname <| GotThing (base_pos + 1)
-        , pushPage ((base_pos + 1), pathname, pathname)
+        [ fetch (base model.testnet) pathname
+          <| GotThing model.testnet (base_pos + 1)
+        , pushPage (model.testnet, (base_pos + 1), pathname, pathname)
         ]
       )
     Pasted something ->
@@ -89,12 +105,18 @@ update msg model =
       let
         pathname = model.things
           |> Array.get pos
-          |> withDefault Empty
+          |> withDefault emptyThing
+          |> first
           |> thingUrl
       in
         ( model
-        , fetch pathname <| GotThing (pos + 1)
+        , fetch (base model.testnet) pathname
+          <| GotThing model.testnet (pos + 1)
         )
+    ToggleTestnet testnet ->
+      ( { model | testnet = Debug.log "testnet?" testnet }
+      , Cmd.none
+      )
     DoNothing ->
       ( model, Cmd.none )
 
@@ -122,12 +144,21 @@ view model =
           ] []
         ]
       ]
+    , div [ class "testnet-switch" ]
+      [ input
+        [ type_ "checkbox"
+        , id "toggle-testnet"
+        , checked <| not model.testnet
+        , onCheck ToggleTestnet
+        ] []
+      , label [ for "toggle-testnet" ] [ text <| if model.testnet then "Test" else "Public" ]
+      ]
     , div [ class "main columns" ] <|
       let 
-        before = Array.get (model.pos - 2) model.things |> withDefault Empty
-        left = Array.get (model.pos - 1) model.things |> withDefault Empty
-        right = Array.get (model.pos) model.things |> withDefault Empty
-        after = Array.get (model.pos + 1) model.things |> withDefault Empty
+        before = Array.get (model.pos - 2) model.things |> withDefault emptyThing
+        left = Array.get (model.pos - 1) model.things |> withDefault emptyThing
+        right = Array.get (model.pos) model.things |> withDefault emptyThing
+        after = Array.get (model.pos + 1) model.things |> withDefault emptyThing
       in
         [ div [ class "column is-2 is-hidden-touch" ]
           [ viewThing (Surf <| model.pos - 2) (Navigate (model.pos - 2)) before

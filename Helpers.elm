@@ -106,3 +106,8 @@ loading =
           []
       ]
     ]
+
+base : Bool -> String
+base testnet = if testnet
+  then "https://horizon-testnet.stellar.org"
+  else "https://horizon.stellar.org"

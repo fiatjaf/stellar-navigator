@@ -3,9 +3,11 @@
   "scripts": {
     "watch-scss": "ls *.scss | entr fish -c 'node-sass --output-style compressed --source-map true style.scss > bundle.css; and echo 'done!''",
     "watch-elm": "ls *.elm | entr fish -c 'elm make Main.elm --output elm.js'",
+    "watch-index": "ls index.html | entr fish -c 'npm run copy-index'",
     "build-scss": "node-sass --output-style compressed --source-map true style.scss > bundle.css",
     "build-elm": "elm make --yes Main.elm --output elm.js",
-    "build": "npm run build-elm && npm run build-scss",
+    "copy-index": "mkdir -p testnet && cp index.html testnet/",
+    "build": "npm run build-elm && npm run build-scss && npm run copy-index",
     "test": "echo 'tests passed: 0/0'"
   },
   "dependencies": {

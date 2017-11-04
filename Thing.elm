@@ -7,7 +7,7 @@ import Html exposing
   , input, select, option, header, nav
   , span, section, nav, img, label
   )
-import Html.Attributes exposing (class, title)
+import Html.Attributes exposing (class, title, attribute)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Http
 import Task
@@ -18,8 +18,6 @@ import Operations exposing (..)
 import Asset exposing (..)
 import Helpers exposing (..)
 
-
-base = "https://horizon-testnet.stellar.org"
 
 routes = router
   [ route (Address << \s -> { defaultAddr | id = s })
@@ -37,11 +35,11 @@ routes = router
 match : String -> Thing
 match = Route.match routes >> Maybe.withDefault Empty
 
-fetch : String -> (Result Http.Error Thing -> msg) -> Cmd msg
-fetch pathname hmsg =
+fetch : String -> String -> (Result Http.Error Thing -> msg) -> Cmd msg
+fetch base pathname hmsg =
   let
     thing = match pathname
-    url = thingUrl thing
+    url = base ++ (thingUrl thing)
     decoder = thingDecoder thing
   in
     if url == ""
@@ -61,16 +59,19 @@ type Thing
   | Loading
   | Errored Http.Error
 
+emptyThing = ( Empty, False )
+loadingThing = ( Loading, False )
+
 thingUrl : Thing -> String
 thingUrl thing =
   case thing of
-    Address addr -> base ++ "/accounts/" ++ addr.id
+    Address addr -> "/accounts/" ++ addr.id
     TransactionsForAddress tfa ->
-      base ++ "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=15"
-    Transaction txn -> base ++ "/transactions/" ++ txn.hash
+      "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=15"
+    Transaction txn -> "/transactions/" ++ txn.hash
     OperationsForTransaction oft ->
-      base ++ "/transactions/" ++ oft.hash ++ "/operations"
-    Operation op -> base ++ "/operations/" ++ op.id
+      "/transactions/" ++ oft.hash ++ "/operations"
+    Operation op -> "/operations/" ++ op.id
     Empty -> ""
     Loading -> ""
     Errored _ -> ""
@@ -188,8 +189,8 @@ opDecoder =
     ( opDataDecoder )
 
 
-viewThing : msg -> (String -> msg) -> Thing -> Html msg
-viewThing surf nav t =
+viewThing : msg -> (String -> msg) -> (Thing, Bool) -> Html msg
+viewThing surf nav (t, testnet)  =
   let
     (kind, content) = case t of
       Address addr -> ("addr", viewAddr nav addr)
@@ -203,8 +204,9 @@ viewThing surf nav t =
   in
     div
       [ onClick surf
-      , class <| "box thing " ++ kind
+      , class <| "box thing " ++ kind ++ (if testnet then " testnet" else "")
       ] [ content ]
+
 
 viewAddr : (String -> msg) -> Addr -> Html msg
 viewAddr nav addr =

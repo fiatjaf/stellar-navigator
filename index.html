@@ -3,24 +3,39 @@
 <meta charset=utf-8>
 <title>Stellar Navigator</title>
 <link href=https://fonts.googleapis.com/css?family=Maven+Pro rel=stylesheet>
-<link href=bundle.css rel=stylesheet>
+<link href=/bundle.css rel=stylesheet>
 <body></body>
-<script src=elm.js></script>
+<script src=/elm.js></script>
 <script>
 var session = Math.random()
+var testnet = false
+if (location.pathname.slice(0, 9) === '/testnet/') {
+  testnet = true
+}
 
-const app = Elm.Main.fullscreen()
+const app = Elm.Main.fullscreen({testnet: testnet})
 
-app.ports.pushPage.subscribe(function ([pos, title, url]) {
+app.ports.pushPage.subscribe(function ([testnet, pos, title, url]) {
   if (location.href.split('/').slice(3).join('/') == '#' + url) {
     return
   }
-  console.log('pushing to', pos)
-  history.pushState({session: session, pos: pos}, title, '/#' + url)
+
+  url = (testnet ? '/testnet/#' : '/#') + url
+  console.log('pushing', url)
+  var state = {
+    session: session,
+    pos: pos
+  }
+
+  history.pushState(state, title, url)
 })
 
 app.ports.navigate.send(location.hash.slice(1))
-history.replaceState({session: session, pos: 2}, document.title, '/' + location.hash)
+history.replaceState({
+  session: session,
+  pos: 2
+}, document.title, (testnet ? '/testnet/' : '/') + location.hash)
+  
 
 window.onpopstate = function (e) {
   if (e.state === null || e.state.session !== session) {
@@ -28,7 +43,7 @@ window.onpopstate = function (e) {
     return
   }
 
-  let pos = e.state.pos
+  var pos = e.state.pos
   console.log('will surf to', pos)
   app.ports.surf.send(pos)
 }
