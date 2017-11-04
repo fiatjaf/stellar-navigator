@@ -203,10 +203,10 @@ view model =
         [ div [ class "column is-2 is-hidden-touch" ]
           [ viewThing (Surf <| model.pos - 2) (Navigate (model.pos - 2)) before
           ]
-        , div [ class "column is-4 is-hidden-mobile" ]
+        , div [ class "column is-4-desktop is-6-tablet is-hidden-mobile" ]
           [ viewThing (Surf <| model.pos - 1) (Navigate (model.pos - 1)) left
           ]
-        , div [ class "column is-4" ]
+        , div [ class "column is-4-desktop is-6-tablet" ]
           [ viewThing DoNothing (Navigate model.pos) right
           ]
         , div [ class "column is-2 is-hidden-touch" ]
