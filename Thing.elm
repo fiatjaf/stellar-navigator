@@ -32,10 +32,14 @@ routes = router
     <| static "op" </> string
   , route (Ledger << \s -> { defaultLed | sequence = s })
     <| static "led" </> int
+  , route (OperationsForLedger << \s -> { defaultOfL | sequence = s })
+    <| static "opsforled" </> int
+  , route (TransactionsForLedger << \s -> { defaultTfL | sequence = s })
+    <| static "txnsforled" </> int
   ] 
 
 match : String -> Thing
-match = Route.match routes >> Maybe.withDefault Empty
+match = Debug.log "matching" >> Route.match routes >> Debug.log "matched" >> Maybe.withDefault Empty
 
 fetch : String -> String -> (Result Http.Error Thing -> msg) -> Cmd msg
 fetch base pathname hmsg =
@@ -58,6 +62,8 @@ type Thing
   | OperationsForTransaction OfT
   | Operation Op
   | Ledger Led
+  | OperationsForLedger OfL
+  | TransactionsForLedger TfL
   | Empty
   | Loading
   | Errored Http.Error
@@ -76,6 +82,10 @@ thingUrl thing =
       "/transactions/" ++ oft.hash ++ "/operations"
     Operation op -> "/operations/" ++ op.id
     Ledger led -> "/ledgers/" ++ (toString led.sequence)
+    OperationsForLedger ofl ->
+      "/ledgers/" ++ (toString ofl.sequence) ++ "/operations"
+    TransactionsForLedger tfl ->
+      "/ledgers/" ++ (toString tfl.sequence) ++ "/transactions"
     Empty -> ""
     Loading -> ""
     Errored _ -> ""
@@ -95,6 +105,14 @@ thingDecoder thing =
         |> J.map OperationsForTransaction
     Operation _ -> opDecoder |> J.map Operation
     Ledger _ -> ledDecoder |> J.map Ledger
+    OperationsForLedger ofl ->
+      oflDecoder
+        |> J.map (\f -> { f | sequence = ofl.sequence })
+        |> J.map OperationsForLedger
+    TransactionsForLedger tfl ->
+      tflDecoder
+        |> J.map (\f -> { f | sequence = tfl.sequence })
+        |> J.map TransactionsForLedger
     Errored err -> J.null (Errored err)
     Loading -> J.null Loading
     Empty -> J.null Empty
@@ -239,6 +257,34 @@ ledDecoder =
     ( networkDecoder )
 
 
+type alias TfL =
+  { sequence : Int
+  , transactions : List Txn
+  }
+
+defaultTfL = TfL 0 []
+
+tflDecoder : J.Decoder TfL
+tflDecoder =
+  J.map2 TfL
+    ( J.succeed 0 )
+    ( J.at ["_embedded", "records"] (J.list txnDecoder) )
+
+
+type alias OfL =
+  { sequence : Int
+  , operations : List Op
+  }
+
+defaultOfL = OfL 0 []
+
+oflDecoder : J.Decoder OfL
+oflDecoder =
+  J.map2 OfL
+    ( J.succeed 0 )
+    ( J.at ["_embedded", "records"] (J.list opDecoder) )
+
+
 viewThing : msg -> (String -> msg) -> (Thing, Bool) -> Html msg
 viewThing surf nav (t, testnet)  =
   let
@@ -249,6 +295,8 @@ viewThing surf nav (t, testnet)  =
       OperationsForTransaction oft -> ("txn", viewOfT surf nav oft)
       Operation op -> ("op", viewOp surf nav op)
       Ledger led -> ("led", viewLed surf nav led)
+      TransactionsForLedger tfl -> ("led", viewTfL surf nav tfl)
+      OperationsForLedger ofl -> ("led", viewOfL surf nav ofl)
       Empty -> ("empty", text "")
       Loading -> ("loading", loading)
       Errored err -> ("errored", text <| errorFormat err)
@@ -497,7 +545,7 @@ viewLed surf nav led =
         [ th [] [ text "transaction_count" ]
         , td []
           [ a
-            [ onClick (nav <| "/txnsforled/" ++ (toString led))
+            [ onClick (nav <| "/txnsforled/" ++ (toString led.sequence))
             ] [ text <| toString led.transaction_count ]
           ]
         ]
@@ -505,7 +553,7 @@ viewLed surf nav led =
         [ th [] [ text "operation_count" ]
         , td []
           [ a
-            [ onClick (nav <| "/opsforled/" ++ (toString led))
+            [ onClick (nav <| "/opsforled/" ++ (toString led.sequence))
             ] [ text <| toString led.operation_count ]
           ]
         ]
@@ -533,5 +581,49 @@ viewLed surf nav led =
         [ th [] [ text "protocol_version" ]
         , td [] [ text <| toString led.network.protocol_version ]
         ]
+      ]
+    ]
+
+
+viewTfL : msg -> (String -> msg) -> TfL -> Html msg
+viewTfL surf nav tfl =
+  div []
+    [ h1
+      [ class "title is-4"
+      , hashcolor <| toString tfl.sequence
+      , onClick surf
+      ] [ text <| "Transactions for Ledger " ++ (toString tfl.sequence) ]
+    , table []
+      [ thead []
+        [ tr []
+          [ th [] [ text "hash" ]
+          , th [] [ text "time" ]
+          , th [] [ text "source" ]
+          , th [] [ text "ops" ]
+          ]
+        ]
+      , tbody []
+        <| List.map (shortTxnRow nav) tfl.transactions
+      ]
+    ]
+
+viewOfL : msg -> (String -> msg) -> OfL -> Html msg
+viewOfL surf nav ofl =
+  div []
+    [ h1
+      [ class "title is-4"
+      , hashcolor <| toString ofl.sequence
+      , onClick surf
+      ] [ text <| "Operations for Ledger " ++ (toString ofl.sequence) ]
+    , table []
+      [ thead []
+        [ tr []
+          [ th [] [ text "id" ]
+          , th [] [ text "type" ]
+          , th [] [ text "source" ]
+          ]
+        ]
+      , tbody []
+        <| List.map (shortOpRow nav) ofl.operations
       ]
     ]
