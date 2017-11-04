@@ -9,6 +9,14 @@ import Html exposing
   )
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
+import Svg exposing (svg, animate, circle)
+import Svg.Attributes exposing
+  ( attributeName, calcMode, dur
+  , keySplines, keyTimes, repeatCount
+  , begin, values, fill, r, stroke
+  , strokeWidth, cx, cy
+  , preserveAspectRatio, viewBox
+  )
 import Http
 import Hashbow
 import Color
@@ -80,3 +88,21 @@ date
   = Date.fromString
   >> Result.withDefault (Date.fromTime 0)
   >> Date.Format.format "%B %e, %Y, %I:%M %p"
+
+
+loading : Html msg
+loading =
+  svg [ Svg.Attributes.class "lds-ripple", Svg.Attributes.height "100%", preserveAspectRatio "xMidYMid", viewBox "0 0 100 100", Svg.Attributes.width "100%" ]  
+    [ circle [ cx "50", cy "50", fill "none", r "0", stroke "#337ab7", strokeWidth "3" ]
+      [ animate [ attributeName "r", begin "-1.85s", calcMode "spline", dur "3.7", keySplines "0 0.2 0.8 1", keyTimes "0;1", repeatCount "indefinite", values "0;35" ]
+          []
+      , animate [ attributeName "opacity", begin "-1.85s", calcMode "spline", dur "3.7", keySplines "0.2 0 0.8 1", keyTimes "0;1", repeatCount "indefinite", values "1;0" ]
+          []
+      ]
+    , circle [ cx "50", cy "50", fill "none", r "0", stroke "#de875b", strokeWidth "3" ]
+      [ animate [ attributeName "r", begin "0s", calcMode "spline", dur "3.7", keySplines "0 0.2 0.8 1", keyTimes "0;1", repeatCount "indefinite", values "0;35" ]
+          []
+      , animate [ attributeName "opacity", begin "0s", calcMode "spline", dur "3.7", keySplines "0.2 0 0.8 1", keyTimes "0;1", repeatCount "indefinite", values "1;0" ]
+          []
+      ]
+    ]

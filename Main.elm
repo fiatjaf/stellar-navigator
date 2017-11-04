@@ -68,7 +68,7 @@ update msg model =
           | pos = base_pos + 1
           , things = model.things
             |> Array.slice 0 (base_pos + 1)
-            |> Array.push Empty
+            |> Array.push Loading
         }
       , Cmd.batch
         [ fetch pathname <| GotThing (base_pos + 1)

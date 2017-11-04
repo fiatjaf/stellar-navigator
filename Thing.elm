@@ -58,6 +58,7 @@ type Thing
   | OperationsForTransaction OfT
   | Operation Op
   | Empty
+  | Loading
   | Errored Http.Error
 
 thingUrl : Thing -> String
@@ -70,8 +71,9 @@ thingUrl thing =
     OperationsForTransaction oft ->
       base ++ "/transactions/" ++ oft.hash ++ "/operations"
     Operation op -> base ++ "/operations/" ++ op.id
-    Errored _ -> ""
     Empty -> ""
+    Loading -> ""
+    Errored _ -> ""
 
 thingDecoder : Thing -> J.Decoder Thing
 thingDecoder thing =
@@ -88,6 +90,7 @@ thingDecoder thing =
         |> J.map OperationsForTransaction
     Operation _ -> opDecoder |> J.map Operation
     Errored err -> J.null (Errored err)
+    Loading -> J.null Loading
     Empty -> J.null Empty
 
 type alias Addr =
@@ -195,6 +198,7 @@ viewThing surf nav t =
       OperationsForTransaction oft -> ("txn", viewOfT nav oft)
       Operation op -> ("op", viewOp nav op)
       Empty -> ("empty", text "")
+      Loading -> ("loading", loading)
       Errored err -> ("errored", text <| errorFormat err)
   in
     div
