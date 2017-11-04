@@ -8,6 +8,10 @@ $primary: #7ebcf9;
 @import 'node_modules/bulma-badge/badge.sass';
 */
 
+html {
+  background: cadetblue;
+}
+
 .top {
   margin: auto 40px;
 }
@@ -35,16 +39,19 @@ $primary: #7ebcf9;
 
 .box.thing {
   overflow: hidden;
+  padding: 15px;
 
-  &.addr { background-color: lighten(#C3E5C1, 0.9); }
-  &.txn { background-color: lighten(#E5C4C1, 0.9); }
-  &.op { background-color: lighten(#C1CBE5, 0.9); }
-  &.eff { background-color: lighten(#E5E3C1, 0.9); }
-  &.ledg { background-color: lighten(#E5D7C1, 0.9); }
+  &.addr { border: 10px solid lighten(#C3E5C1, 0.9); }
+  &.txn { border: 10px solid lighten(#E5C4C1, 0.9); }
+  &.op { border: 10px solid lighten(#C1CBE5, 0.9); }
+  &.eff { border: 10px solid lighten(#E5E3C1, 0.9); }
+  &.ledg { border: 10px solid lighten(#E5D7C1, 0.9); }
 
   h1 {
     padding: 7px;
     border-radius: 4px;
+    overflow: hidden;
+    text-overflow: clip;
   }
 
   thead th { text-align: center; }
@@ -60,4 +67,16 @@ $primary: #7ebcf9;
   th + td {
     word-break: break-all;
   }
+}
+
+.emphasis {
+  font-size: 1.2em;
+  line-height: 1.2em;
+  font-weight: bold;
+  text-shadow: 0 0 3px #ececec;
+  color: #392d2d;
+}
+
+.link {
+  padding: 3px;
 }

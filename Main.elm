@@ -14,6 +14,7 @@ import Maybe exposing (withDefault)
 
 import Ports exposing (..)
 import Thing exposing (..)
+import Helpers exposing (..)
 
 
 main =
@@ -114,15 +115,12 @@ view model =
   if model.error /= "" then text model.error
   else div []
     [ div [ class "top columns is-mobile" ]
-      [ div [ class "column is-11" ]
+      [ div [ class "column is-12" ]
         [ input
           [ class "input"
-          , placeholder "Type a Stellar identifier (address, transaction hash, operation id etc.)"
+          , placeholder "Paste a Stellar identifier (address, transaction hash, ledger number, operation id etc.)"
           , onInput Pasted
           ] []
-        ]
-      , div [ class "column is-1" ]
-        [ button [ class "button is-primary" ] [ text "ok" ]
         ]
       ]
     , div [ class "main columns" ] <|
@@ -132,7 +130,7 @@ view model =
         right = Array.get (model.pos) model.things |> withDefault Empty
         after = Array.get (model.pos + 1) model.things |> withDefault Empty
       in
-        [ div [ class "column is-2 is-hidden-mobile" ]
+        [ div [ class "column is-2 is-hidden-touch" ]
           [ viewThing (Surf <| model.pos - 2) (Navigate (model.pos - 2)) before
           ]
         , div [ class "column is-hidden-mobile" ]
@@ -141,22 +139,8 @@ view model =
         , div [ class "column" ]
           [ viewThing DoNothing (Navigate model.pos) right
           ]
-        , div [ class "column is-2 is-hidden-mobile" ]
+        , div [ class "column is-2 is-hidden-touch" ]
           [ viewThing (Surf <| model.pos + 1) (Navigate (model.pos + 1)) after
           ]
         ]
     ]
-
-
-identifierKind : String -> String
-identifierKind identifier =
-  let
-    len = String.length identifier
-    int = String.toInt identifier |> Result.withDefault 0
-  in
-    if len == 56 then "addr"
-    else if len == 64 then "txn"
-    else if int == 0 then ""
-    else if int < 100000000 then "ledg"
-    else "op"
-    

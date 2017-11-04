@@ -1,6 +1,17 @@
 module Asset exposing (..)
 
+import Html exposing
+  ( Html, Attribute, text
+  , h1, h2, div, textarea, button, p, a
+  , table, tbody, thead, tr, th, td
+  , input, select, option, header, nav
+  , span, section, nav, img, label
+  )
+import Html.Attributes exposing (class)
+import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Json.Decode as J
+
+import Helpers exposing (..)
 
 
 type alias Asset =
@@ -19,3 +30,15 @@ assetDecoder =
     ( J.map (Maybe.withDefault "")
       <| J.maybe ( J.field "asset_issuer" J.string )
     )
+
+viewAsset : (String -> msg) -> Asset -> Html msg
+viewAsset nav asset =
+  if asset.native then span [ class "asset-native" ] [ text "lumens" ]
+  else span [ class "asset-issued" ]
+    [ span [ class "code" ]
+      [ text asset.code
+      ]
+    , a [ onClick <| nav ("/addr/" ++ asset.issuer) ]
+      [ text <| wrap asset.issuer
+      ]
+    ]

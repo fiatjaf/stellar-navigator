@@ -7,17 +7,16 @@ import Html exposing
   , input, select, option, header, nav
   , span, section, nav, img, label
   )
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (class, title)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Http
 import Task
 import Json.Decode as J
-import Hashbow
-import Color
 import Route exposing (..)
 
 import Operations exposing (..)
 import Asset exposing (..)
+import Helpers exposing (..)
 
 
 base = "https://horizon-testnet.stellar.org"
@@ -209,7 +208,7 @@ viewAddr nav addr =
     [ h1
       [ class "title"
       , title addr.id
-      , titleColor addr.id "0.6"
+      , hashcolor addr.id
       ] [ text <| "Address " ++ (wrap addr.id) ]
     , table []
       [ tr []
@@ -223,7 +222,6 @@ viewAddr nav addr =
             [ thead []
               [ tr []
                 [ th [] [ text "name" ]
-                , th [] [ text "issuer" ]
                 , th [] [ text "amount" ]
                 ]
               ]
@@ -244,7 +242,6 @@ viewAddr nav addr =
                 [ thead []
                   [ tr []
                     [ th [] [ text "name" ]
-                    , th [] [ text "issuer" ]
                     , th [] [ text "max trust" ]
                     ]
                   ]
@@ -254,8 +251,9 @@ viewAddr nav addr =
               ]
             ]
       , tr []
-        [ td [ rowspan 2 ]
-          [ a [ onClick (nav <| "/txnsforaddr/" ++ addr.id) ] [ text "last transactions" ] ]
+        [ th [] [ text "transactions" ]
+        , td []
+          [ a [ onClick (nav <| "/txnsforaddr/" ++ addr.id) ] [ text "last 15" ] ]
         ]
       ]
     ]
@@ -263,12 +261,7 @@ viewAddr nav addr =
 balanceRow : (String -> msg) -> (Balance -> String) -> Balance -> Html msg
 balanceRow nav getter balance =
   tr []
-    [ td [] [ text balance.asset.code ]
-    , td []
-      [ a [ onClick (nav <| "/addr/" ++ balance.asset.issuer ) ]
-        [ text <| wrap balance.asset.issuer
-        ]
-      ]
+    [ td [] [ viewAsset nav balance.asset ]
     , td [] [ text <| getter balance ]
     ]
 
@@ -277,7 +270,7 @@ viewTfA nav tfa =
   div []
     [ h1
       [ class "title is-4"
-      , titleColor tfa.addr "0.6"
+      , hashcolor tfa.addr
       ] [ text <| "Transactions for Address " ++ (wrap tfa.addr) ]
     , table []
       [ thead []
@@ -295,15 +288,9 @@ viewTfA nav tfa =
 shortTxnRow : (String -> msg) -> Txn -> Html msg
 shortTxnRow nav txn =
   tr []
-    [ td []
-      [ a [ onClick (nav <| "/txn/" ++ txn.hash) ] [ text <| wrap txn.hash ]
-      ]
+    [ td [] [ txnlink nav txn.hash ]
     , td [] [ text txn.created_at ]
-    , td []
-      [ a [ onClick (nav <| "/addr/" ++ txn.source_account) ]
-        [ text <| wrap txn.source_account
-        ]
-      ]
+    , td [] [ addrlink nav txn.source_account ]
     ]
 
 viewTxn : (String -> msg) -> Txn -> Html msg
@@ -311,7 +298,7 @@ viewTxn nav txn =
   div []
     [ h1
       [ class "title"
-      , titleColor txn.hash "0.6"
+      , hashcolor txn.hash
       ] [ text <| "Transaction " ++ (wrap txn.hash) ]
     , table []
       [ tr []
@@ -328,11 +315,7 @@ viewTxn nav txn =
         ]
       , tr []
         [ th [] [ text "source_account" ]
-        , td []
-          [ a
-            [ onClick (nav <| "/addr/" ++ txn.source_account)
-            ] [ text <| wrap txn.source_account ]
-          ]
+        , td [] [ addrlink nav txn.source_account ]
         ]
       , tr []
         [ th [] [ text "operations" ]
@@ -344,7 +327,7 @@ viewTxn nav txn =
       ]
       , tr []
         [ th [] [ text "fee_paid" ]
-        , td [] [ text <| toString txn.fee_paid ]
+        , td [ class "emphasis" ] [ text <| toString txn.fee_paid ]
         ]
       ]
     ]
@@ -354,7 +337,7 @@ viewOfT nav oft =
   div []
     [ h1
       [ class "title is-4"
-      , titleColor oft.hash "0.6"
+      , hashcolor oft.hash
       ] [ text <| "Operations for Transaction " ++ (wrap oft.hash) ]
     , table []
       [ thead []
@@ -372,13 +355,9 @@ viewOfT nav oft =
 shortOpRow : (String -> msg) -> Op -> Html msg
 shortOpRow nav op =
   tr []
-    [ td []
-      [ a [ onClick (nav <| "/op/" ++ op.id) ] [ text <| wrap op.id ]
-      ]
+    [ td [] [ oplink nav op.id ]
     , td [] [ text op.type_ ]
-    , td []
-      [ a [ onClick (nav <| "/addr/" ++ op.source_account) ] [ text <| wrap op.source_account ]
-      ]
+    , td [] [ addrlink nav op.source_account ]
     ]
 
 viewOp : (String -> msg) -> Op -> Html msg
@@ -386,51 +365,23 @@ viewOp nav op =
   div []
     [ h1
       [ class "title"
-      , titleColor op.id "0.6"
-      ] [ text <| "Operation " ++ (wrap op.id) ]
+      , hashcolor op.id
+      ]
+      [ span [ class "emphasis" ] [ text op.type_ ]
+      , text " operation"
+      ]
     , table []
-      [ tr []
-        [ th [] [ text "source_account" ]
-        , td []
-          [ a [ onClick (nav <| "/addr/" ++ op.source_account) ]
-            [ text <| wrap op.source_account
+      <| List.concat
+        [ [ tr []
+            [ th [] [ text "id" ]
+            , td [] [ text <| String.toLower op.id ]
+            ]
+          , tr []
+            [ th [] [ text "source_account" ]
+            , td [] [ addrlink nav op.source_account ]
             ]
           ]
+        , ( opDataRows nav op.data )
         ]
-      , tr []
-        [ th [] [ text "type" ]
-        , td [] [ text op.type_ ]
-        ]
-      ]
     ]
 
-
-wrap : String -> String
-wrap str =
-  if str == ""
-  then ""
-  else (String.left 3 str) ++ "..." ++ (String.right 4 str)
-    |> String.toLower
-
-titleColor : String -> String -> Attribute msg
-titleColor id alpha =
-  let 
-    s = (String.toLower id)
-    c = Hashbow.color 0.6 0.7 s
-    rgba = Color.toRgb c
-  in
-    style
-      [ ("background-color"
-        , "rgba(" ++ (toString rgba.red) ++ ", " ++ (toString rgba.green) ++ ", " ++ (toString rgba.blue) ++ ", " ++ alpha ++ ")"
-        )
-      ]
-
-errorFormat : Http.Error -> String
-errorFormat err =
-  case err of
-    Http.BadUrl u -> "bad url " ++ u
-    Http.Timeout -> "timeout"
-    Http.NetworkError -> "network error"
-    Http.BadStatus resp ->
-      resp.url ++ " returned " ++ (toString resp.status.code) ++ ": " ++ resp.body
-    Http.BadPayload x y -> "bad payload (" ++ x ++ ")"
