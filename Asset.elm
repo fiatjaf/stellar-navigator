@@ -4,8 +4,8 @@ import Html exposing
   ( Html, Attribute, text
   , h1, h2, div, textarea, button, p, a
   , table, tbody, thead, tr, th, td
-  , input, select, option, header, nav
-  , span, section, nav, img, label
+  , input, select, option, header
+  , span, section, img, label
   )
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
@@ -31,12 +31,12 @@ assetDecoder =
       <| J.maybe ( J.field "asset_issuer" J.string )
     )
 
-viewAsset : (String -> msg) -> Asset -> Html msg
-viewAsset nav asset =
+viewAsset : Asset -> Html GlobalAction
+viewAsset asset =
   if asset.native then span [ class "asset-native" ] [ text "lumens" ]
   else span [ class "asset-issued" ]
     [ span [ class "code" ]
       [ text asset.code
       ]
-    , addrlink nav asset.issuer
+    , addrlink asset.issuer
     ]

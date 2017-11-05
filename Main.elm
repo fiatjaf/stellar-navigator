@@ -6,6 +6,7 @@ import Html exposing
   , input, select, option, header, nav
   , span, section, nav, img, label, img
   )
+import Html.Lazy exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -30,6 +31,7 @@ main =
 
 
 -- MODEL
+
 type alias Model =
   { pos : Int
   , things : Array (Thing, Bool)
@@ -69,6 +71,7 @@ type Msg
   | NewTransaction Txn
   | NewLedger Led
   | DoNothing 
+  | GlobalMessage Int GlobalAction
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -143,11 +146,16 @@ update msg model =
       ( { model | last_leds = List.take 23 (led :: model.last_leds) }
       , Cmd.none
       )
-    DoNothing ->
-      ( model, Cmd.none )
+    DoNothing -> ( model, Cmd.none )
+    GlobalMessage pos msg ->
+      case msg of
+        NavigateTo path -> update (Navigate pos path) model
+        SurfHere -> update (Surf pos) model
+        NothingHere -> ( model, Cmd.none )
 
 
 -- SUBSCRIPTIONS
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
@@ -201,68 +209,74 @@ view model =
         after = Array.get (model.pos + 1) model.things |> withDefault emptyThing
       in
         [ div [ class "column is-2 is-hidden-touch" ]
-          [ viewThing (Surf <| model.pos - 2) (Navigate (model.pos - 2)) before
+          [ lazy viewThing before |> Html.map (GlobalMessage (model.pos - 2))
           ]
         , div [ class "column is-4-desktop is-6-tablet is-hidden-mobile" ]
-          [ viewThing (Surf <| model.pos - 1) (Navigate (model.pos - 1)) left
+          [ lazy viewThing left |> Html.map (GlobalMessage (model.pos - 1))
           ]
         , div [ class "column is-4-desktop is-6-tablet" ]
-          [ viewThing DoNothing (Navigate model.pos) right
+          [ lazy viewThing right |> Html.map (GlobalMessage model.pos)
           ]
         , div [ class "column is-2 is-hidden-touch" ]
-          [ viewThing (Surf <| model.pos + 1) (Navigate (model.pos + 1)) after
+          [ lazy viewThing after |> Html.map (GlobalMessage (model.pos + 1))
           ]
         ]
     , div [ class "live columns" ]
       [ div [ class "column" ]
-        [ div [ class "box" ]
-          [ h1 [ class "title is-4" ] [ text "last operations" ]
-          , table []
-            [ thead []
-              [ tr []
-                [ th [] [ text "id" ]
-                , th [] [ text "type" ]
-                , th [] [ text "source" ]
+        [ div [ class "box" ] <|
+          let viewRow = lazy shortOpRow >> Html.map (GlobalMessage model.pos)
+          in
+            [ h1 [ class "title is-4" ] [ text "last operations" ]
+            , table []
+              [ thead []
+                [ tr []
+                  [ th [] [ text "id" ]
+                  , th [] [ text "type" ]
+                  , th [] [ text "source" ]
+                  ]
                 ]
+              , tbody []
+                <| List.map viewRow model.last_ops
               ]
-            , tbody []
-              <| List.map (shortOpRow <| Navigate model.pos) model.last_ops
             ]
-          ]
         ]
       , div [ class "column" ]
-        [ div [ class "box" ]
-          [ h1 [ class "title is-4" ] [ text "last transactions" ]
-          , table []
-            [ thead []
-              [ tr []
-                [ th [] [ text "hash" ]
-                , th [] [ text "time" ]
-                , th [] [ text "source" ]
-                , th [] [ text "ops" ]
+        [ div [ class "box" ] <|
+          let viewRow = lazy shortTxnRow >> Html.map (GlobalMessage model.pos)
+          in
+            [ h1 [ class "title is-4" ] [ text "last transactions" ]
+            , table []
+              [ thead []
+                [ tr []
+                  [ th [] [ text "hash" ]
+                  , th [] [ text "time" ]
+                  , th [] [ text "source" ]
+                  , th [] [ text "ops" ]
+                  ]
                 ]
+              , tbody []
+                <| List.map viewRow model.last_txns
               ]
-            , tbody []
-              <| List.map (shortTxnRow <| Navigate model.pos) model.last_txns
             ]
-          ]
         ]
       , div [ class "column" ]
-        [ div [ class "box" ]
-          [ h1 [ class "title is-4" ] [ text "last ledgers closed" ]
-          , table []
-            [ thead []
-              [ tr []
-                [ th [] [ text "seq" ]
-                , th [] [ text "time" ]
-                , th [] [ text "txns" ]
-                , th [] [ text "ops" ]
+        [ div [ class "box" ] <|
+          let viewRow = lazy shortLedRow >> Html.map (GlobalMessage model.pos)
+          in
+            [ h1 [ class "title is-4" ] [ text "last ledgers closed" ]
+            , table []
+              [ thead []
+                [ tr []
+                  [ th [] [ text "seq" ]
+                  , th [] [ text "time" ]
+                  , th [] [ text "txns" ]
+                  , th [] [ text "ops" ]
+                  ]
                 ]
+              , tbody []
+                <| List.map viewRow model.last_leds
               ]
-            , tbody []
-              <| List.map (shortLedRow <| Navigate model.pos) model.last_leds
             ]
-          ]
         ]
       ]
     , footer []

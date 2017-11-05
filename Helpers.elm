@@ -4,7 +4,7 @@ import Html exposing
   ( Html, Attribute, text
   , h1, h2, div, textarea, button, p, a
   , table, tbody, thead, tr, th, td
-  , input, select, option, header, nav
+  , input, select, option, header
   , span, section, nav, img, label
   )
 import Html.Attributes exposing (..)
@@ -22,6 +22,12 @@ import Hashbow
 import Color
 import Date
 import Date.Format
+
+
+type GlobalAction
+  = NavigateTo String
+  | SurfHere
+  | NothingHere
 
 wrap : String -> String
 wrap str =
@@ -59,19 +65,19 @@ txnlink = link "txn"
 oplink = link "op"
 efflink = link "eff"
 
-link : String -> (String -> msg) -> String -> Html msg
-link kind nav id =
+link : String -> String -> Html GlobalAction
+link kind id =
   a
-    [ onClick <| nav ("/" ++ kind ++ "/" ++ id)
+    [ onClick <| NavigateTo ("/" ++ kind ++ "/" ++ id)
     , title id
     , class <| "link " ++ kind
     , hashcolor id
     ] [ text <| wrap id ]
 
-ledlink : (String -> msg) -> Int -> Html msg
-ledlink nav seq =
+ledlink : Int -> Html GlobalAction
+ledlink seq =
   a
-    [ onClick <| nav ("/led/" ++ (toString seq))
+    [ onClick <| NavigateTo ("/led/" ++ (toString seq))
     , title <| toString seq
     , class <| "link led"
     , hashcolor (toString seq)
@@ -109,7 +115,7 @@ time
   >> Date.Format.format "%I:%M:%S %P"
 
 
-loading : Html msg
+loading : Html GlobalAction
 loading =
   svg [ Svg.Attributes.class "lds-ripple", Svg.Attributes.height "100%", preserveAspectRatio "xMidYMid", viewBox "0 0 100 100", Svg.Attributes.width "100%" ]  
     [ circle [ cx "50", cy "50", fill "none", r "0", stroke "#337ab7", strokeWidth "3" ]

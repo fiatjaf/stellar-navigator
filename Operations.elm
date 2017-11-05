@@ -4,8 +4,8 @@ import Html exposing
   ( Html, Attribute, text
   , h1, h2, div, textarea, button, p, a
   , table, tbody, thead, tr, th, td
-  , input, select, option, header, nav
-  , span, section, nav, img, label
+  , input, select, option, header
+  , span, section, img, label
   )
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
@@ -212,13 +212,13 @@ manDataDecoder =
 -- VIEWS
 
 
-opDataRows : (String -> msg) -> OpData -> List (Html msg)
-opDataRows nav data =
+opDataRows : OpData -> List (Html GlobalAction)
+opDataRows data =
   case data of
     CreateAccount create ->
       [ tr []
         [ th [] [ text "funder" ]
-        , td [] [ addrlink nav create.funder ]
+        , td [] [ addrlink create.funder ]
         ]
       , tr []
         [ th [] [ text "starting_balance" ]
@@ -226,7 +226,7 @@ opDataRows nav data =
         ]
       , tr []
         [ th [] [ text "account" ]
-        , td [] [ addrlink nav create.account ]
+        , td [] [ addrlink create.account ]
         ]
       ]
     Payment pay ->
@@ -236,15 +236,15 @@ opDataRows nav data =
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset nav pay.asset ]
+        , td [] [ viewAsset pay.asset ]
         ]
       , tr []
         [ th [] [ text "from" ]
-        , td [] [ addrlink nav pay.from ]
+        , td [] [ addrlink pay.from ]
         ]
       , tr []
         [ th [] [ text "to" ]
-        , td [] [ addrlink nav pay.to ]
+        , td [] [ addrlink pay.to ]
         ]
       ]
     PathPayment pathp ->
@@ -254,21 +254,21 @@ opDataRows nav data =
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset nav pathp.asset ]
+        , td [] [ viewAsset pathp.asset ]
         ]
       , tr []
         [ th [] [ text "from" ]
-        , td [] [ addrlink nav pathp.from ]
+        , td [] [ addrlink pathp.from ]
         ]
       , tr []
         [ th [] [ text "to" ]
-        , td [] [ addrlink nav pathp.to ]
+        , td [] [ addrlink pathp.to ]
         ]
       , tr []
         [ th [] [ text "path" ]
         , td []
           <| List.intersperse (text " -> ")
-          <| List.map (viewAsset nav) pathp.path
+          <| List.map viewAsset pathp.path
         ]
       ]
     ManageOfferOrPassive offer ->
@@ -278,7 +278,7 @@ opDataRows nav data =
         ]
       , tr []
         [ th [] [ text "buying" ]
-        , td [] [ viewAsset nav offer.buying ]
+        , td [] [ viewAsset offer.buying ]
         ]
       , tr []
         [ th [] [ text "price" ]
@@ -286,7 +286,7 @@ opDataRows nav data =
         ]
       , tr []
         [ th [] [ text "selling" ]
-        , td [] [ viewAsset nav offer.selling ]
+        , td [] [ viewAsset offer.selling ]
         ]
       , tr []
         [ th [] [ text "amount" ]
@@ -330,11 +330,11 @@ opDataRows nav data =
     ChangeTrust trust ->
       [ tr []
         [ th [] [ text "trustor" ]
-        , td [] [ addrlink nav trust.trustor ]
+        , td [] [ addrlink trust.trustor ]
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset nav trust.asset ]
+        , td [] [ viewAsset trust.asset ]
         ]
       , tr []
         [ th [] [ text "limit" ]
@@ -344,7 +344,7 @@ opDataRows nav data =
     AllowTrust allow ->
       [ tr []
         [ th [] [ text "trustor" ]
-        , td [] [ addrlink nav allow.trustor ]
+        , td [] [ addrlink allow.trustor ]
         ]
       , tr []
         [ th [] [ text "authorize" ]
@@ -352,7 +352,7 @@ opDataRows nav data =
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset nav allow.asset ]
+        , td [] [ viewAsset allow.asset ]
         ]
       , case allow.limit of
         Just limit ->
@@ -365,11 +365,11 @@ opDataRows nav data =
     AccountMerge merge ->
       [ tr []
         [ th [] [ text "account" ]
-        , td [] [ addrlink nav merge.account ]
+        , td [] [ addrlink merge.account ]
         ]
       , tr []
         [ th [] [ text "into" ]
-        , td [] [ addrlink nav merge.into ]
+        , td [] [ addrlink merge.into ]
         ]
       ]
     Inflation infl -> []

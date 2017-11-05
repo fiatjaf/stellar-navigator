@@ -4,8 +4,8 @@ import Html exposing
   ( Html, Attribute, text
   , h1, h2, div, textarea, button, p, a
   , table, tbody, thead, tr, th, td
-  , input, select, option, header, nav
-  , span, section, nav, img, label
+  , input, select, option, header
+  , span, section, img, label
   )
 import Html.Attributes exposing (class, title, attribute)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
@@ -287,18 +287,18 @@ oflDecoder =
     ( J.at ["_embedded", "records"] (J.list opDecoder) )
 
 
-viewThing : msg -> (String -> msg) -> (Thing, Bool) -> Html msg
-viewThing surf nav (t, testnet)  =
+viewThing : (Thing, Bool) -> Html GlobalAction
+viewThing (t, testnet)  =
   let
     (kind, content) = case t of
-      Address addr -> ("addr", viewAddr surf nav addr)
-      TransactionsForAddress tfa -> ("addr", viewTfA surf nav tfa)
-      Transaction txn -> ("txn", viewTxn surf nav txn)
-      OperationsForTransaction oft -> ("txn", viewOfT surf nav oft)
-      Operation op -> ("op", viewOp surf nav op)
-      Ledger led -> ("led", viewLed surf nav led)
-      TransactionsForLedger tfl -> ("led", viewTfL surf nav tfl)
-      OperationsForLedger ofl -> ("led", viewOfL surf nav ofl)
+      Address addr -> ("addr", viewAddr addr)
+      TransactionsForAddress tfa -> ("addr", viewTfA tfa)
+      Transaction txn -> ("txn", viewTxn txn)
+      OperationsForTransaction oft -> ("txn", viewOfT oft)
+      Operation op -> ("op", viewOp op)
+      Ledger led -> ("led", viewLed led)
+      TransactionsForLedger tfl -> ("led", viewTfL tfl)
+      OperationsForLedger ofl -> ("led", viewOfL ofl)
       Empty -> ("empty", text "")
       Loading -> ("loading", loading)
       Errored err -> ("errored", text <| errorFormat err)
@@ -308,10 +308,10 @@ viewThing surf nav (t, testnet)  =
       ] [ content ]
 
 
-viewAddr : msg -> (String -> msg) -> Addr -> Html msg
-viewAddr surf nav addr =
+viewAddr : Addr -> Html GlobalAction
+viewAddr addr =
   div []
-    [ h1 [ class "title", onClick surf ]
+    [ h1 [ class "title", onClick SurfHere ]
       [ text "Address "
       , span [ title addr.id, hashcolor addr.id ] [ text <| wrap addr.id ]
       ]
@@ -331,7 +331,7 @@ viewAddr surf nav addr =
                 ]
               ]
             , tbody []
-              <| List.map (balanceRow nav .balance) addr.balances
+              <| List.map (balanceRow .balance) addr.balances
             ]
           ]
         ]
@@ -351,29 +351,31 @@ viewAddr surf nav addr =
                     ]
                   ]
                 , tbody []
-                  <| List.map (balanceRow nav .limit) balances
+                  <| List.map (balanceRow .limit) balances
                 ]
               ]
             ]
       , tr []
         [ th [] [ text "transactions" ]
         , td []
-          [ a [ onClick (nav <| "/txnsforaddr/" ++ addr.id) ] [ text "last 15" ] ]
+          [ a
+            [ onClick (NavigateTo <| "/txnsforaddr/" ++ addr.id) ]
+            [ text "last 15" ] ]
         ]
       ]
     ]
 
-balanceRow : (String -> msg) -> (Balance -> String) -> Balance -> Html msg
-balanceRow nav getter balance =
+balanceRow : (Balance -> String) -> Balance -> Html GlobalAction
+balanceRow getter balance =
   tr []
-    [ td [ class "singleline" ] [ viewAsset nav balance.asset ]
+    [ td [ class "singleline" ] [ viewAsset balance.asset ]
     , td [ title <| getter balance, class "wrappable" ] [ text <| getter balance ]
     ]
 
-viewTfA : msg -> (String -> msg) -> TfA -> Html msg
-viewTfA surf nav tfa =
+viewTfA : TfA -> Html GlobalAction
+viewTfA tfa =
   div []
-    [ h1 [ class "title is-3", onClick surf ]
+    [ h1 [ class "title is-3", onClick SurfHere ]
       [ text "Transactions for "
       , span [ title tfa.addr, hashcolor tfa.addr ] [ text <| wrap tfa.addr ]
       ]
@@ -387,26 +389,26 @@ viewTfA surf nav tfa =
           ]
         ]
       , tbody []
-        <| List.map (shortTxnRow nav) tfa.transactions
+        <| List.map shortTxnRow tfa.transactions
       ]
     ]
 
-shortTxnRow : (String -> msg) -> Txn -> Html msg
-shortTxnRow nav txn =
+shortTxnRow : Txn -> Html GlobalAction
+shortTxnRow txn =
   tr []
-    [ td [] [ txnlink nav txn.hash ]
+    [ td [] [ txnlink txn.hash ]
     , td
       [ class "hideable"
       , title <| date txn.created_at
       ] [ text <| dateShort txn.created_at ]
-    , td [] [ addrlink nav txn.source_account ]
+    , td [] [ addrlink txn.source_account ]
     , td [] [ text <| toString txn.operation_count ]
     ]
 
-viewTxn : msg -> (String -> msg) -> Txn -> Html msg
-viewTxn surf nav txn =
+viewTxn : Txn -> Html GlobalAction
+viewTxn txn =
   div []
-    [ h1 [ class "title", onClick surf ]
+    [ h1 [ class "title", onClick SurfHere ]
       [ text "Transaction "
       , span [ title txn.hash, hashcolor txn.hash ] [ text <| wrap txn.hash ]
       ]
@@ -417,7 +419,7 @@ viewTxn surf nav txn =
         ]
       , tr []
         [ th [] [ text "ledger" ]
-        , td [] [ ledlink nav txn.ledger ]
+        , td [] [ ledlink txn.ledger ]
         ]
       , tr []
         [ th [] [ text "created_at" ]
@@ -425,13 +427,13 @@ viewTxn surf nav txn =
         ]
       , tr []
         [ th [] [ text "source_account" ]
-        , td [] [ addrlink nav txn.source_account ]
+        , td [] [ addrlink txn.source_account ]
         ]
       , tr []
         [ th [] [ text "ops" ]
         , td []
           [ a
-            [ onClick (nav <| "/opsfortxn/" ++ txn.hash)
+            [ onClick (NavigateTo <| "/opsfortxn/" ++ txn.hash)
             ] [ text <| toString txn.operation_count ]
         ]
       ]
@@ -442,10 +444,10 @@ viewTxn surf nav txn =
       ]
     ]
 
-viewOfT : msg -> (String -> msg) -> OfT -> Html msg
-viewOfT surf nav oft =
+viewOfT : OfT -> Html GlobalAction
+viewOfT oft =
   div []
-    [ h1 [ class "title is-3", onClick surf ]
+    [ h1 [ class "title is-3", onClick SurfHere ]
       [ text "Operations for "
       , span [ title oft.hash, hashcolor oft.hash ] [ text <| wrap oft.hash ]
       ]
@@ -458,20 +460,20 @@ viewOfT surf nav oft =
           ]
         ]
       , tbody []
-        <| List.map (shortOpRow nav) oft.operations
+        <| List.map shortOpRow oft.operations
       ]
     ]
 
-shortOpRow : (String -> msg) -> Op -> Html msg
-shortOpRow nav op =
+shortOpRow : Op -> Html GlobalAction
+shortOpRow op =
   tr []
-    [ td [] [ oplink nav op.id ]
+    [ td [] [ oplink op.id ]
     , td [] [ text op.type_ ]
-    , td [] [ addrlink nav op.source_account ]
+    , td [] [ addrlink op.source_account ]
     ]
 
-viewOp : msg -> (String -> msg) -> Op -> Html msg
-viewOp surf nav op =
+viewOp : Op -> Html GlobalAction
+viewOp op =
   let
     generalrows =
       [ tr []
@@ -480,27 +482,27 @@ viewOp surf nav op =
         ]
       , tr []
         [ th [] [ text "source_account" ]
-        , td [] [ addrlink nav op.source_account ]
+        , td [] [ addrlink op.source_account ]
         ]
       , tr []
         [ th [] [ text "transaction" ]
-        , td [] [ txnlink nav op.txn ]
+        , td [] [ txnlink op.txn ]
         ]
       ]
-    specificrows = opDataRows nav op.data
+    specificrows = opDataRows op.data
     rows = List.concat [ generalrows, specificrows ]
   in div []
-    [ h1 [ class "title", onClick surf ]
+    [ h1 [ class "title", onClick SurfHere ]
       [ span [ class "emphasis" ] [ text op.type_ ]
       , span [] [ text " Operation" ]
       ]
     , table [] rows
     ]
 
-shortLedRow : (String -> msg) -> Led -> Html msg
-shortLedRow nav led =
+shortLedRow : Led -> Html GlobalAction
+shortLedRow led =
   tr []
-    [ td [] [ ledlink nav led.sequence ]
+    [ td [] [ ledlink led.sequence ]
     , td
       [ class "hideable"
       , title <| date led.closed_at
@@ -510,11 +512,11 @@ shortLedRow nav led =
     ]
 
 
-viewLed : msg -> (String -> msg) -> Led -> Html msg
-viewLed surf nav led =
+viewLed : Led -> Html GlobalAction
+viewLed led =
   let seq = toString led.sequence
   in div []
-    [ h1 [ class "title", onClick surf ]
+    [ h1 [ class "title", onClick SurfHere ]
       [ span [] [ text "Ledger " ]
       , span [ title seq, hashcolor seq ] [ text seq ]
       ]
@@ -525,11 +527,11 @@ viewLed surf nav led =
         ]
       , tr []
         [ th [] [ text "previous" ]
-        , td [] [ ledlink nav (led.sequence - 1) ]
+        , td [] [ ledlink (led.sequence - 1) ]
         ]
       , tr []
         [ th [] [ text "next" ]
-        , td [] [ ledlink nav (led.sequence + 1) ]
+        , td [] [ ledlink (led.sequence + 1) ]
         ]
       , tr []
         [ th [] [ text "closed_at" ]
@@ -539,7 +541,7 @@ viewLed surf nav led =
         [ th [] [ text "transaction_count" ]
         , td []
           [ a
-            [ onClick (nav <| "/txnsforled/" ++ seq)
+            [ onClick (NavigateTo <| "/txnsforled/" ++ seq)
             ] [ text <| toString led.transaction_count ]
           ]
         ]
@@ -547,7 +549,7 @@ viewLed surf nav led =
         [ th [] [ text "operation_count" ]
         , td []
           [ a
-            [ onClick (nav <| "/opsforled/" ++ seq)
+            [ onClick (NavigateTo <| "/opsforled/" ++ seq)
             ] [ text <| toString led.operation_count ]
           ]
         ]
@@ -579,11 +581,11 @@ viewLed surf nav led =
     ]
 
 
-viewTfL : msg -> (String -> msg) -> TfL -> Html msg
-viewTfL surf nav tfl =
+viewTfL : TfL -> Html GlobalAction
+viewTfL tfl =
   let seq = toString tfl.sequence
   in div []
-    [ h1 [ class "title is-3", onClick surf ]
+    [ h1 [ class "title is-3", onClick SurfHere ]
       [ span [] [ text "Transactions for " ]
       , span [ title seq, hashcolor seq ] [ text seq ]
       ]
@@ -597,15 +599,15 @@ viewTfL surf nav tfl =
           ]
         ]
       , tbody []
-        <| List.map (shortTxnRow nav) tfl.transactions
+        <| List.map shortTxnRow tfl.transactions
       ]
     ]
 
-viewOfL : msg -> (String -> msg) -> OfL -> Html msg
-viewOfL surf nav ofl =
+viewOfL : OfL -> Html GlobalAction
+viewOfL ofl =
   let seq = toString ofl.sequence
   in div []
-    [ h1 [ class "title is-3", onClick surf ]
+    [ h1 [ class "title is-3", onClick SurfHere ]
       [ span [] [ text "Operations for " ]
       , span [ title seq, hashcolor seq ] [ text seq ]
       ]
@@ -618,6 +620,6 @@ viewOfL surf nav ofl =
           ]
         ]
       , tbody []
-        <| List.map (shortOpRow nav) ofl.operations
+        <| List.map shortOpRow ofl.operations
       ]
     ]
