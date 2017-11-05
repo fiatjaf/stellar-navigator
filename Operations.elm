@@ -302,7 +302,7 @@ opDataRows data =
     SetOptions so ->
       [ if so.inflation_dest == "" then text "" else tr []
         [ th [] [ text "inflation_dest" ]
-        , td [] [ text so.inflation_dest ]
+        , td [] [ addrlink so.inflation_dest ]
         ]
       , if so.home_domain == "" then text "" else tr []
         [ th [] [ text "home_domain" ]

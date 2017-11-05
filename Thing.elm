@@ -11,6 +11,7 @@ import Html.Attributes exposing (class, title, attribute)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Http
 import Task
+import Dict exposing (Dict)
 import Json.Decode as J
 import Route exposing (..)
 
@@ -124,15 +125,41 @@ thingDecoder thing =
 type alias Addr =
   { id : String
   , balances : List Balance
+  , home_domain : String
+  , inflation_destination : String
+  , signers : List Signer
+  , data : Dict String String
   }
 
-defaultAddr = Addr "" []
+defaultAddr = Addr "" [] "" "" [] (Dict.fromList [])
 
 addrDecoder : J.Decoder Addr
 addrDecoder =
-  J.map2 Addr
+  J.map6 Addr
     ( J.field "id" J.string )
     ( J.field "balances" <| J.list balanceDecoder )
+    ( J.map (Maybe.withDefault "")
+      <| J.maybe ( J.field "home_domain" J.string )
+    )
+    ( J.map (Maybe.withDefault "")
+      <| J.maybe ( J.field "inflation_destination" J.string )
+    )
+    ( J.field "signers"
+      <| J.list
+      <| J.map4 Signer
+        ( J.field "public_key" J.string )
+        ( J.field "weight" J.int )
+        ( J.field "key" J.string )
+        ( J.field "type" J.string )
+    )
+    ( J.field "data" (J.dict J.string) )
+
+type alias Signer =
+  { public_key : String
+  , weight : Int
+  , key : String
+  , type_ : String
+  }
 
 type alias Balance =
   { asset : Asset
@@ -336,7 +363,7 @@ viewAddr addr =
     , table []
       [ tr []
         [ th [] [ text "id" ]
-        , td [] [ text <| String.toLower addr.id ]
+        , td [] [ text <| String.toUpper addr.id ]
         ]
       , tr []
         [ th [] [ text "balances" ]
@@ -386,6 +413,29 @@ viewAddr addr =
           [ a
             [ onClick (NavigateTo <| "/opsforaddr/" ++ addr.id) ]
             [ text "view last 23" ] ]
+        ]
+      , tr []
+        [ th [ class "wrappable" ] [ text "home_domain" ]
+        , td [] [ text addr.home_domain ]
+        ]
+      , tr []
+        [ th [ class "wrappable" ] [ text "inflation_destination" ]
+        , td []
+          [ if addr.inflation_destination /= ""
+            then addrlink addr.inflation_destination
+            else text ""
+          ]
+        ]
+      , tr []
+        [ th [] [ text "data" ]
+        , td []
+          [ table []
+            <| List.map
+              ( \(k, v) ->
+                tr [] [ td [] [ text k ] , td [] [ text v ] ]
+              )
+            <| Dict.toList addr.data
+          ]
         ]
       ]
     ]
