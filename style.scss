@@ -231,18 +231,18 @@ th, td { padding: 5px; }
 .table th, .table td { padding: 2px 5px; }
 th + td { word-break: break-all; }
 
-td.hideable {
+.hideable {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-td.wrappable {
+.wrappable {
   word-wrap: break-word;
   word-break: break-all;
 }
 
-td.singleline {
+.singleline {
   white-space: pre;
 }
 
