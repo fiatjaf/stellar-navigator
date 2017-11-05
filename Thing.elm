@@ -24,6 +24,8 @@ routes = router
     <| static "addr" </> string
   , route (TransactionsForAddress << \s -> { defaultTfA | addr = s })
     <| static "txnsforaddr" </> string
+  , route (OperationsForAddress << \s -> { defaultOfA | addr = s })
+    <| static "opsforaddr" </> string
   , route (Transaction << \s -> { defaultTxn | hash = s })
     <| static "txn" </> string
   , route (OperationsForTransaction << \s -> { defaultOfT | hash = s })
@@ -38,26 +40,22 @@ routes = router
     <| static "txnsforled" </> int
   ] 
 
-match : String -> Thing
-match = Route.match routes >> Maybe.withDefault Empty
+match : String -> Maybe Thing
+match = Route.match routes
 
 fetch : String -> String -> (Result Http.Error Thing -> msg) -> Cmd msg
 fetch base pathname hmsg =
-  let
-    thing = match pathname
-    url = base ++ (thingUrl thing)
-    decoder = thingDecoder thing
-  in
-    if url == ""
-    then hmsg (Ok Empty)
-      |> Task.succeed
-      |> Task.perform identity 
-    else Http.get url decoder |> Http.send hmsg
-
+  case match pathname of
+    Just thing ->
+      Http.get (base ++ (thingUrl thing)) (thingDecoder thing)
+        |> Http.send hmsg
+    Nothing ->
+      hmsg (Ok Empty) |> Task.succeed |> Task.perform identity
 
 type Thing
   = Address Addr
   | TransactionsForAddress TfA
+  | OperationsForAddress OfA
   | Transaction Txn
   | OperationsForTransaction OfT
   | Operation Op
@@ -76,7 +74,9 @@ thingUrl thing =
   case thing of
     Address addr -> "/accounts/" ++ addr.id
     TransactionsForAddress tfa ->
-      "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=15"
+      "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=23"
+    OperationsForAddress ofa ->
+      "/accounts/" ++ ofa.addr ++ "/operations?order=desc&limit=23"
     Transaction txn -> "/transactions/" ++ txn.hash
     OperationsForTransaction oft ->
       "/transactions/" ++ oft.hash ++ "/operations"
@@ -98,6 +98,10 @@ thingDecoder thing =
       tfaDecoder
         |> J.map (\f -> { f | addr = tfa.addr })
         |> J.map TransactionsForAddress
+    OperationsForAddress ofa ->
+      ofaDecoder
+        |> J.map (\f -> { f | addr = ofa.addr })
+        |> J.map OperationsForAddress
     Transaction _ -> txnDecoder |> J.map Transaction
     OperationsForTransaction oft ->
       oftDecoder
@@ -159,6 +163,19 @@ tfaDecoder =
   J.map2 TfA
     ( J.succeed "" )
     ( J.at ["_embedded", "records"] (J.list txnDecoder) )
+
+type alias OfA =
+  { addr : String
+  , operations : List Op
+  }
+
+defaultOfA = OfA "" []
+
+ofaDecoder : J.Decoder OfA
+ofaDecoder =
+  J.map2 OfA
+    ( J.succeed "" )
+    ( J.at ["_embedded", "records"] (J.list opDecoder) )
 
 type alias Txn =
   { hash : String
@@ -293,6 +310,7 @@ viewThing (t, testnet)  =
     (kind, content) = case t of
       Address addr -> ("addr", viewAddr addr)
       TransactionsForAddress tfa -> ("addr", viewTfA tfa)
+      OperationsForAddress ofa -> ("addr", viewOfA ofa)
       Transaction txn -> ("txn", viewTxn txn)
       OperationsForTransaction oft -> ("txn", viewOfT oft)
       Operation op -> ("op", viewOp op)
@@ -360,7 +378,14 @@ viewAddr addr =
         , td []
           [ a
             [ onClick (NavigateTo <| "/txnsforaddr/" ++ addr.id) ]
-            [ text "last 15" ] ]
+            [ text "view last 23" ] ]
+        ]
+      , tr []
+        [ th [] [ text "operations" ]
+        , td []
+          [ a
+            [ onClick (NavigateTo <| "/opsforaddr/" ++ addr.id) ]
+            [ text "view last 23" ] ]
         ]
       ]
     ]
@@ -380,16 +405,20 @@ viewTfA tfa =
       , span [ title tfa.addr, hashcolor tfa.addr ] [ text <| wrap tfa.addr ]
       ]
     , table []
-      [ thead []
-        [ tr []
-          [ th [] [ text "hash" ]
-          , th [] [ text "time" ]
-          , th [] [ text "source" ]
-          , th [] [ text "ops" ]
-          ]
-        ]
+      [ shortTxnHeader
       , tbody []
         <| List.map shortTxnRow tfa.transactions
+      ]
+    ]
+
+shortTxnHeader : Html msg
+shortTxnHeader =
+  thead []
+    [ tr []
+      [ th [] [ text "hash" ]
+      , th [] [ text "time" ]
+      , th [] [ text "source" ]
+      , th [] [ text "ops" ]
       ]
     ]
 
@@ -402,7 +431,10 @@ shortTxnRow txn =
       , title <| date txn.created_at
       ] [ text <| dateShort txn.created_at ]
     , td [] [ addrlink txn.source_account ]
-    , td [] [ text <| toString txn.operation_count ]
+    , td []
+      [ a [ onClick (NavigateTo <| "/opsfortxn/" ++ txn.hash) ]
+        [ text <| toString txn.operation_count ]
+      ]
     ]
 
 viewTxn : Txn -> Html GlobalAction
@@ -432,14 +464,15 @@ viewTxn txn =
       , tr []
         [ th [] [ text "ops" ]
         , td []
-          [ a
-            [ onClick (NavigateTo <| "/opsfortxn/" ++ txn.hash)
-            ] [ text <| toString txn.operation_count ]
+          [ a [ onClick (NavigateTo <| "/opsfortxn/" ++ txn.hash) ]
+            [ span [ class "emphasis" ] [ text <| toString txn.operation_count ]
+            , text " (click to browse)"
+            ]
+          ]
         ]
-      ]
       , tr []
         [ th [] [ text "fee_paid" ]
-        , td [ class "emphasis" ] [ text <| toString txn.fee_paid ]
+        , td [] [ text <| toString txn.fee_paid ]
         ]
       ]
     ]
@@ -452,15 +485,34 @@ viewOfT oft =
       , span [ title oft.hash, hashcolor oft.hash ] [ text <| wrap oft.hash ]
       ]
     , table []
-      [ thead []
-        [ tr []
-          [ th [] [ text "id" ]
-          , th [] [ text "type" ]
-          , th [] [ text "source" ]
-          ]
-        ]
+      [ shortOpHeader
       , tbody []
         <| List.map shortOpRow oft.operations
+      ]
+    ]
+
+viewOfA : OfA -> Html GlobalAction
+viewOfA ofa =
+  div []
+    [ h1 [ class "title is-3", onClick SurfHere ]
+      [ text "Operations for "
+      , span [ title ofa.addr, hashcolor ofa.addr ] [ text <| wrap ofa.addr ]
+      ]
+    , table []
+      [ shortOpHeader
+      , tbody []
+        <| List.map shortOpRow ofa.operations
+      ]
+    ]
+
+shortOpHeader : Html msg
+shortOpHeader =
+  thead []
+    [ tr []
+      [ th [] [ text "id" ]
+      , th [] [ text "type" ]
+      , th [] [ text "source" ]
+      , th [] [ text "txn" ]
       ]
     ]
 
@@ -470,6 +522,7 @@ shortOpRow op =
     [ td [] [ oplink op.id ]
     , td [] [ text op.type_ ]
     , td [] [ addrlink op.source_account ]
+    , td [] [ txnlink op.txn ]
     ]
 
 viewOp : Op -> Html GlobalAction
@@ -501,14 +554,21 @@ viewOp op =
 
 shortLedRow : Led -> Html GlobalAction
 shortLedRow led =
-  tr []
+  let seq = toString led.sequence
+  in tr []
     [ td [] [ ledlink led.sequence ]
     , td
       [ class "hideable"
       , title <| date led.closed_at
       ] [ text <| time led.closed_at ]
-    , td [] [ text <| toString led.transaction_count ]
-    , td [] [ text <| toString led.operation_count ]
+    , td []
+      [ a [ onClick (NavigateTo <| "/txnsforled/" ++ seq) ]
+        [ text <| toString led.transaction_count ]
+      ]
+    , td []
+      [ a [ onClick (NavigateTo <| "/opsforled/" ++ seq) ]
+        [ text <| toString led.operation_count ]
+      ]
     ]
 
 
@@ -540,17 +600,19 @@ viewLed led =
       , tr []
         [ th [ class "wrappable" ] [ text "transaction_count" ]
         , td []
-          [ a
-            [ onClick (NavigateTo <| "/txnsforled/" ++ seq)
-            ] [ text <| toString led.transaction_count ]
+          [ a [ onClick (NavigateTo <| "/txnsforled/" ++ seq) ]
+            [ span [ class "emphasis" ] [ text <| toString led.transaction_count ]
+            , text " (click to browse)"
+            ]
           ]
         ]
       , tr []
         [ th [ class "wrappable" ] [ text "operation_count" ]
         , td []
-          [ a
-            [ onClick (NavigateTo <| "/opsforled/" ++ seq)
-            ] [ text <| toString led.operation_count ]
+          [ a [ onClick (NavigateTo <| "/opsforled/" ++ seq) ]
+            [ span [ class "emphasis" ] [ text <| toString led.operation_count ]
+            , text " (click to browse)"
+            ]
           ]
         ]
       , tr []
@@ -590,14 +652,7 @@ viewTfL tfl =
       , span [ title seq, hashcolor seq ] [ text seq ]
       ]
     , table []
-      [ thead []
-        [ tr []
-          [ th [] [ text "hash" ]
-          , th [] [ text "time" ]
-          , th [] [ text "source" ]
-          , th [] [ text "ops" ]
-          ]
-        ]
+      [ shortTxnHeader
       , tbody []
         <| List.map shortTxnRow tfl.transactions
       ]
@@ -612,13 +667,7 @@ viewOfL ofl =
       , span [ title seq, hashcolor seq ] [ text seq ]
       ]
     , table []
-      [ thead []
-        [ tr []
-          [ th [] [ text "id" ]
-          , th [] [ text "type" ]
-          , th [] [ text "source" ]
-          ]
-        ]
+      [ shortOpHeader
       , tbody []
         <| List.map shortOpRow ofl.operations
       ]

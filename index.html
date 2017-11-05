@@ -58,13 +58,13 @@ app.ports.sse.subscribe(function (base) {
   if (ssetxns) ssetxns.close()
   if (sseleds) sseleds.close()
 
-  sseops = new EventSource(base + '/operations?cursor=now&limit=23')
+  sseops = new EventSource(base + '/operations?cursor=now')
   sseops.onmessage = function (e) { app.ports.newop.send(e.data) }
 
-  ssetxns = new EventSource(base + '/transactions?cursor=now&limit=23')
+  ssetxns = new EventSource(base + '/transactions?cursor=now')
   ssetxns.onmessage = function (e) { app.ports.newtxn.send(e.data) }
 
-  sseleds = new EventSource(base + '/ledgers?cursor=now&limit=23')
+  sseleds = new EventSource(base + '/ledgers?cursor=now')
   sseleds.onmessage = function (e) { app.ports.newled.send(e.data) }
 })
 </script>

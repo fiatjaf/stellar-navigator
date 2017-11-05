@@ -232,13 +232,7 @@ view model =
           in
             [ h1 [ class "title is-4" ] [ text "last operations" ]
             , table []
-              [ thead []
-                [ tr []
-                  [ th [] [ text "id" ]
-                  , th [] [ text "type" ]
-                  , th [] [ text "source" ]
-                  ]
-                ]
+              [ shortOpHeader
               , tbody []
                 <| List.map viewRow model.last_ops
               ]
@@ -250,14 +244,7 @@ view model =
           in
             [ h1 [ class "title is-4" ] [ text "last transactions" ]
             , table []
-              [ thead []
-                [ tr []
-                  [ th [] [ text "hash" ]
-                  , th [] [ text "time" ]
-                  , th [] [ text "source" ]
-                  , th [] [ text "ops" ]
-                  ]
-                ]
+              [ shortTxnHeader
               , tbody []
                 <| List.map viewRow model.last_txns
               ]
