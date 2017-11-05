@@ -203,25 +203,29 @@ view model =
       ]
     , div [ class "main columns" ] <|
       let 
-        before = Array.get (model.pos - 2) model.things |> withDefault emptyThing
-        left = Array.get (model.pos - 1) model.things |> withDefault emptyThing
-        right = Array.get (model.pos) model.things |> withDefault emptyThing
-        after = Array.get (model.pos + 1) model.things |> withDefault emptyThing
+        nminus3 = Array.get (model.pos - 3) model.things |> withDefault emptyThing
+        nminus2 = Array.get (model.pos - 2) model.things |> withDefault emptyThing
+        nminus1 = Array.get (model.pos - 1) model.things |> withDefault emptyThing
+        n = Array.get (model.pos) model.things |> withDefault emptyThing
+        nplus1 = Array.get (model.pos + 1) model.things |> withDefault emptyThing
       in
-        [ div [ class "column is-2 is-hidden-touch" ]
-          [ lazy viewThing before |> Html.map (GlobalMessage (model.pos - 2))
+        [ div [ class "column nminus3" ]
+          [ lazy viewThing nminus3 |> Html.map (GlobalMessage (model.pos - 3))
           ]
-        , div [ class "column is-4-desktop is-6-tablet is-hidden-mobile" ]
-          [ lazy viewThing left |> Html.map (GlobalMessage (model.pos - 1))
+        , div [ class "column nminus2" ]
+          [ lazy viewThing nminus2 |> Html.map (GlobalMessage (model.pos - 2))
           ]
-        , div [ class "column is-4-desktop is-6-tablet" ]
-          [ lazy viewThing right |> Html.map (GlobalMessage model.pos)
+        , div [ class "column nminus1" ]
+          [ lazy viewThing nminus1 |> Html.map (GlobalMessage (model.pos - 1))
           ]
-        , div [ class "column is-2 is-hidden-touch" ]
-          [ lazy viewThing after |> Html.map (GlobalMessage (model.pos + 1))
+        , div [ class "column n" ]
+          [ lazy viewThing n |> Html.map (GlobalMessage model.pos)
+          ]
+        , div [ class "column nplus1" ]
+          [ lazy viewThing nplus1 |> Html.map (GlobalMessage (model.pos + 1))
           ]
         ]
-    , div [ class "live columns" ]
+    , div [ class "live columns is-desktop" ]
       [ div [ class "column" ]
         [ div [ class "box" ] <|
           let viewRow = lazy shortOpRow >> Html.map (GlobalMessage model.pos)
@@ -281,7 +285,7 @@ view model =
       ]
     , footer []
       [ div [ class "container" ]
-        [ div [ class "columns" ]
+        [ div [ class "columns is-mobile" ]
           [ div [ class "column" ]
             [ a [ href "https://fiatjaf.alhur.es/" ] [ text "fiatjaf" ]
             , text " 2017"
