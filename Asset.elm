@@ -24,7 +24,7 @@ assetDecoder : J.Decoder Asset
 assetDecoder =
   J.map3 Asset
     ( J.field "asset_type" J.string |> J.map ((==) "native") )
-    ( J.map (Maybe.withDefault "Lumens")
+    ( J.map (Maybe.withDefault "")
       <| J.maybe ( J.field "asset_code" J.string )
     )
     ( J.map (Maybe.withDefault "")

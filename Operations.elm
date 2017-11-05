@@ -106,17 +106,23 @@ offerDecoder =
     ( J.field "offer_id" J.int )
     ( J.field "amount" J.string )
     ( J.field "price" J.string )
-    ( J.field "buying"
-      <| J.map3 Asset
+    ( J.map3 Asset
         ( J.field "buying_asset_type" J.string |> J.map ((==) "native") )
-        ( J.field "buying_asset_code" J.string )
-        ( J.field "buying_asset_issuer" J.string )
+        ( J.map (Maybe.withDefault "")
+          <| J.maybe ( J.field "buying_asset_code" J.string )
+        )
+        ( J.map (Maybe.withDefault "")
+          <| J.maybe ( J.field "buying_asset_issuer" J.string )
+        )
     )
-    ( J.field "selling"
-      <| J.map3 Asset
+    ( J.map3 Asset
         ( J.field "selling_asset_type" J.string |> J.map ((==) "native") )
-        ( J.field "selling_asset_code" J.string )
-        ( J.field "selling_asset_issuer" J.string )
+        ( J.map (Maybe.withDefault "")
+          <| J.maybe ( J.field "selling_asset_code" J.string )
+        )
+        ( J.map (Maybe.withDefault "")
+          <| J.maybe ( J.field "selling_asset_issuer" J.string )
+        )
     )
 
 
