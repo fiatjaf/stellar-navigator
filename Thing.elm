@@ -198,11 +198,11 @@ type alias Op =
   { id : String
   , source_account : String
   , type_ : String
-  , data : OpData
   , txn : String
+  , data : OpData
   }
 
-defaultOp = Op "" "" "" None ""
+defaultOp = Op "" "" "" "" Noop
 
 opDecoder : J.Decoder Op
 opDecoder =
@@ -210,9 +210,11 @@ opDecoder =
     ( J.field "id" J.string )
     ( J.field "source_account" J.string )
     ( J.field "type" J.string )
-    ( opDataDecoder )
     ( J.at [ "_links", "transaction", "href" ] J.string
       |> J.map (String.split "/" >> List.reverse >> List.head >> Maybe.withDefault "")
+    )
+    ( ( J.field "type" J.string )
+      |> J.andThen opDataDecoder
     )
 
 
@@ -470,28 +472,29 @@ shortOpRow nav op =
 
 viewOp : msg -> (String -> msg) -> Op -> Html msg
 viewOp surf nav op =
-  div []
+  let
+    generalrows =
+      [ tr []
+        [ th [] [ text "id" ]
+        , td [] [ text <| String.toLower op.id ]
+        ]
+      , tr []
+        [ th [] [ text "source_account" ]
+        , td [] [ addrlink nav op.source_account ]
+        ]
+      , tr []
+        [ th [] [ text "transaction" ]
+        , td [] [ txnlink nav op.txn ]
+        ]
+      ]
+    specificrows = opDataRows nav op.data
+    rows = List.concat [ generalrows, specificrows ]
+  in div []
     [ h1 [ class "title", onClick surf ]
       [ span [ class "emphasis" ] [ text op.type_ ]
       , span [] [ text " Operation" ]
       ]
-    , table []
-      <| List.concat
-        [ [ tr []
-            [ th [] [ text "id" ]
-            , td [] [ text <| String.toLower op.id ]
-            ]
-          , tr []
-            [ th [] [ text "source_account" ]
-            , td [] [ addrlink nav op.source_account ]
-            ]
-          , tr []
-            [ th [] [ text "transaction" ]
-            , td [] [ txnlink nav op.txn ]
-            ]
-          ]
-        , ( opDataRows nav op.data )
-        ]
+    , table [] rows
     ]
 
 shortLedRow : (String -> msg) -> Led -> Html msg
