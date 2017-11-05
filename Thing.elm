@@ -473,7 +473,7 @@ viewOp surf nav op =
   div []
     [ h1 [ class "title", onClick surf ]
       [ span [ class "emphasis" ] [ text op.type_ ]
-      , span [ title op.id, hashcolor op.id ] [ text " Operation" ]
+      , span [] [ text " Operation" ]
       ]
     , table []
       <| List.concat
