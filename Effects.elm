@@ -189,8 +189,8 @@ effDataRows effdata =
               ]
             ]
           , tr []
-            [ td [ title "bought" ] [ text trade.bought_amount ]
-            , td [ title "sold" ] [ text trade.sold_amount ]
+            [ td [ title "bought", class "emphasis" ] [ text trade.bought_amount ]
+            , td [ title "sold", class "emphasis" ] [ text trade.sold_amount ]
             ]
           , tr []
             [ td []
@@ -208,7 +208,7 @@ effDataRows effdata =
     NoEffData -> []
 
 amtRows amt =
-  [ td [ title "amount" ] [ text amt.amount ]
+  [ td [ title "amount", class "emphasis" ] [ text amt.amount ]
   , td [ title "asset" ] [ viewAsset amt.asset ]
   ]
 

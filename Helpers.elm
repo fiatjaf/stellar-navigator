@@ -1,5 +1,6 @@
 module Helpers exposing (..)
 
+import Regex exposing (HowMany(..), replace, regex)
 import Html exposing
   ( Html, Attribute, text
   , h1, h2, div, textarea, button, p, a
@@ -38,6 +39,9 @@ wrap str =
 
 limitwrap : String -> String
 limitwrap number = if number == "922337203685.4775807" then "max" else number
+
+typereplace : String -> String
+typereplace = replace All (regex "_") (\_ -> " ")
 
 hashcolor : String -> Attribute msg
 hashcolor id =

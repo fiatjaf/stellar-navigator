@@ -91,26 +91,26 @@ thingUrl thing =
   case thing of
     Address addr -> "/accounts/" ++ addr.id
     TransactionsForAddress tfa ->
-      "/accounts/" ++ tfa.addr ++ "/transactions?order=desc"
+      "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=50"
     OperationsForAddress ofa ->
-      "/accounts/" ++ ofa.addr ++ "/operations?order=desc"
+      "/accounts/" ++ ofa.addr ++ "/operations?order=desc&limit=50"
     EffectsForAddress efa ->
-      "/accounts/" ++ efa.addr ++ "/effects?order=desc"
+      "/accounts/" ++ efa.addr ++ "/effects?order=desc&limit=50"
     Transaction txn -> "/transactions/" ++ txn.hash
     OperationsForTransaction oft ->
-      "/transactions/" ++ oft.hash ++ "/operations"
+      "/transactions/" ++ oft.hash ++ "/operations?order=desc&limit=50"
     EffectsForTransaction eft ->
-      "/transactions/" ++ eft.hash ++ "/effects?order=desc"
+      "/transactions/" ++ eft.hash ++ "/effects?order=desc&limit=50"
     Operation op -> "/operations/" ++ op.id
     EffectsForOperation efo ->
       "/operations/" ++ efo.id ++ "/effects?order=desc"
     Ledger led -> "/ledgers/" ++ (toString led.sequence)
     OperationsForLedger ofl ->
-      "/ledgers/" ++ (toString ofl.sequence) ++ "/operations"
+      "/ledgers/" ++ (toString ofl.sequence) ++ "/operations?order=desc&limit=50"
     TransactionsForLedger tfl ->
-      "/ledgers/" ++ (toString tfl.sequence) ++ "/transactions"
+      "/ledgers/" ++ (toString tfl.sequence) ++ "/transactions?order=desc&limit=50"
     EffectsForLedger efl ->
-      "/ledgers/" ++ (toString efl.sequence) ++ "/effects?order=desc"
+      "/ledgers/" ++ (toString efl.sequence) ++ "/effects?order=desc&limit=50"
     Empty -> ""
     Loading -> ""
     Errored _ -> ""
@@ -665,7 +665,7 @@ shortOpRow : Op -> Html GlobalAction
 shortOpRow op =
   tr []
     [ td [] [ oplink op.id ]
-    , td [] [ text op.type_ ]
+    , td [] [ text <| typereplace op.type_ ]
     , td [] [ addrlink op.source_account ]
     , td [] [ txnlink op.txn ]
     ]
@@ -872,6 +872,6 @@ shortEffRow eff =
   tr [] <|
     List.append
       [ td [] [ addrlink eff.account ]
-      , td [] [ text eff.type_ ]
+      , td [] [ text <| typereplace eff.type_ ]
       ]
       ( effDataRows eff.effData )
