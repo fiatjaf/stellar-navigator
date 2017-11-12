@@ -7,7 +7,7 @@ import Html exposing
   , input, select, option, header
   , span, section, img, label
   )
-import Html.Attributes exposing (class, title, attribute)
+import Html.Attributes exposing (class, title, attribute, colspan)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Http
 import Task
@@ -91,26 +91,26 @@ thingUrl thing =
   case thing of
     Address addr -> "/accounts/" ++ addr.id
     TransactionsForAddress tfa ->
-      "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=23"
+      "/accounts/" ++ tfa.addr ++ "/transactions?order=desc"
     OperationsForAddress ofa ->
-      "/accounts/" ++ ofa.addr ++ "/operations?order=desc&limit=23"
+      "/accounts/" ++ ofa.addr ++ "/operations?order=desc"
     EffectsForAddress efa ->
-      "/accounts/" ++ efa.addr ++ "/effects"
+      "/accounts/" ++ efa.addr ++ "/effects?order=desc"
     Transaction txn -> "/transactions/" ++ txn.hash
     OperationsForTransaction oft ->
       "/transactions/" ++ oft.hash ++ "/operations"
     EffectsForTransaction eft ->
-      "/transactions/" ++ eft.hash ++ "/effects"
+      "/transactions/" ++ eft.hash ++ "/effects?order=desc"
     Operation op -> "/operations/" ++ op.id
     EffectsForOperation efo ->
-      "/operations/" ++ efo.id ++ "/effects"
+      "/operations/" ++ efo.id ++ "/effects?order=desc"
     Ledger led -> "/ledgers/" ++ (toString led.sequence)
     OperationsForLedger ofl ->
       "/ledgers/" ++ (toString ofl.sequence) ++ "/operations"
     TransactionsForLedger tfl ->
       "/ledgers/" ++ (toString tfl.sequence) ++ "/transactions"
     EffectsForLedger efl ->
-      "/ledgers/" ++ (toString efl.sequence) ++ "/effects"
+      "/ledgers/" ++ (toString efl.sequence) ++ "/effects?order=desc"
     Empty -> ""
     Loading -> ""
     Errored _ -> ""
@@ -469,7 +469,7 @@ viewAddr addr =
                     ]
                   ]
                 , tbody []
-                  <| List.map (balanceRow .limit) balances
+                  <| List.map (balanceRow <| .limit >> limitwrap) balances
                 ]
               ]
             ]
@@ -478,21 +478,21 @@ viewAddr addr =
         , td []
           [ a
             [ onClick (NavigateTo <| "/txnsforaddr/" ++ addr.id) ]
-            [ text "view last 23" ] ]
+            [ text "list all" ] ]
         ]
       , tr []
         [ th [] [ text "operations" ]
         , td []
           [ a
             [ onClick (NavigateTo <| "/opsforaddr/" ++ addr.id) ]
-            [ text "view last 23" ] ]
+            [ text "list all" ] ]
         ]
       , tr []
         [ th [] [ text "effects" ]
         , td []
           [ a
             [ onClick (NavigateTo <| "/effsforaddr/" ++ addr.id) ]
-            [ text "list effects" ]
+            [ text "list all" ]
           ]
         ]
       , tr []
@@ -613,7 +613,7 @@ viewTxn txn =
         , td []
           [ a
             [ onClick (NavigateTo <| "/effsfortxn/" ++ txn.hash) ]
-            [ text "list effects" ]
+            [ text "list all" ]
           ]
         ]
       ]
@@ -694,7 +694,7 @@ viewOp op =
         , td []
           [ a
             [ onClick (NavigateTo <| "/effsforop/" ++ op.id) ]
-            [ text "list effects" ]
+            [ text "list all" ]
           ]
         ]
       ]
@@ -778,7 +778,7 @@ viewLed led =
         , td []
           [ a
             [ onClick (NavigateTo <| "/effsforled/" ++ seq) ]
-            [ text "list effects" ]
+            [ text "list all" ]
           ]
         ]
       , tr []
@@ -863,12 +863,15 @@ shortEffHeader =
     [ tr []
       [ th [] [ text "account" ]
       , th [] [ text "type" ]
+      , th [ colspan 2 ] [ text "info" ]
       ]
     ]
 
 shortEffRow : Eff -> Html GlobalAction
 shortEffRow eff =
-  tr []
-    [ td [] [ addrlink eff.account ]
-    , td [] [ text eff.type_ ]
-    ]
+  tr [] <|
+    List.append
+      [ td [] [ addrlink eff.account ]
+      , td [] [ text eff.type_ ]
+      ]
+      ( effDataRows eff.effData )

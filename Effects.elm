@@ -7,7 +7,7 @@ import Html exposing
   , input, select, option, header
   , span, section, img, label
   )
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (colspan, title)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Json.Decode as J
 
@@ -19,7 +19,7 @@ type EffData
   | AccountCredited Amt
   | AccountDebited Amt
   | AccountThresholdUpdated { low : Int, med : Int, high : Int }
-  | AccountHomeDomainUpdated { home_domain : String }
+  | AccountHomeDomainUpdated String
   | AccountFlagsUpdated { auth_required : Bool, auth_revokable : Bool }
   | SignerCreated Signer
   | SignerRemoved Signer
@@ -38,12 +38,8 @@ effDataDecoder op_type  =
     "account_created" ->
       J.map ( (\a -> { starting_balance=a } ) >> AccountCreated )
         (  J.field "starting_balance" J.string  )
-    "account_credited" ->
-      J.map AccountCredited
-        <| J.map Amt (  J.field "amount" J.string  )
-    "account_debited" ->
-      J.map AccountCredited
-        <| J.map Amt (  J.field "amount" J.string  )
+    "account_credited" -> J.map AccountCredited amtDecoder
+    "account_debited" -> J.map AccountDebited amtDecoder
     "account_threshold_updated" ->
       J.map AccountThresholdUpdated
         <| J.map3
@@ -53,9 +49,7 @@ effDataDecoder op_type  =
           ( J.field "high_threshold" J.int  )
     "account_home_domain_updated" -> 
       J.map AccountHomeDomainUpdated
-        <| J.map
-          ( \hd -> { home_domain=hd } )
-          ( J.field "home_domain" J.string )
+        ( J.field "home_domain" J.string )
     "account_flags_updated" -> 
       J.map AccountFlagsUpdated
         <| J.map2
@@ -70,9 +64,15 @@ effDataDecoder op_type  =
     "trustline_updated" -> J.map TrustlineUpdated lineDecoder
     "trustline_authorized" -> J.map TrustlineAuthorized trustAuthDecoder
     "trustline_deauthorized" -> J.map TrustlineDeauthorized trustAuthDecoder
+    "trade" -> J.map Trade trdDecoder
     _ -> J.succeed NoEffData
 
-type alias Amt = { amount : String }
+type alias Amt = { amount : String, asset : Asset }
+
+amtDecoder = 
+  J.map2 Amt
+    ( J.field "amount" J.string  )
+    ( assetDecoder )
 
 type alias Signer = { weight : Int, public_key : String, key : String }
 
@@ -137,3 +137,94 @@ trdDecoder =
         <| J.maybe ( J.field "bought_asset_issuer" J.string )
       )
     )
+
+
+-- VIEW
+
+
+effDataRows : EffData -> List (Html GlobalAction)
+effDataRows effdata =
+  case effdata of
+    AccountCreated b ->
+      [ td
+        [ colspan 2, title "starting_balance" ]
+        [ text b.starting_balance ]
+      ]
+    AccountCredited amt -> amtRows amt
+    AccountDebited amt -> amtRows amt
+    AccountThresholdUpdated {low, med, high} ->
+      [ td [ colspan 2, title "low, med, high" ]
+        [ text <| toString low
+        , text " | "
+        , text <| toString med
+        , text " | "
+        , text <| toString high
+        ]
+      ]
+    AccountHomeDomainUpdated home_domain ->
+      [ td [ colspan 2, title "home_domain" ]
+        [ text home_domain ]
+      ]
+    AccountFlagsUpdated {auth_required, auth_revokable} ->
+      [ td []
+        [ text <| "auth " ++ (if auth_required then "required" else "not required") ]
+      , td []
+        [ text <| "auth " ++ (if auth_revokable then "revokable" else "not revokable") ]
+      ]
+    SignerCreated signer -> signerRows signer
+    SignerRemoved signer -> signerRows signer
+    SignerUpdated signer -> signerRows signer
+    TrustlineCreated line -> lineRows line
+    TrustlineRemoved line -> lineRows line
+    TrustlineUpdated line -> lineRows line
+    TrustlineAuthorized ta -> trustAuthRows ta
+    TrustlineDeauthorized ta -> trustAuthRows ta
+    Trade trade ->
+      [ td [ colspan 2 ]
+        [ table []
+          [ tr []
+            [ td [ colspan 2, title "counterparty" ]
+              [ text "counterparty: "
+              , addrlink trade.seller
+              ]
+            ]
+          , tr []
+            [ td [ title "bought" ] [ text trade.bought_amount ]
+            , td [ title "sold" ] [ text trade.sold_amount ]
+            ]
+          , tr []
+            [ td []
+              [ text "← "
+              , viewAsset trade.bought_asset
+              ]
+            , td []
+              [ viewAsset trade.sold_asset
+              , text " →"
+              ]
+            ]
+          ]
+        ]
+      ]
+    NoEffData -> []
+
+amtRows amt =
+  [ td [ title "amount" ] [ text amt.amount ]
+  , td [ title "asset" ] [ viewAsset amt.asset ]
+  ]
+
+signerRows signer =
+  [ td [ title "public_key" ]
+    [ text <| wrap signer.public_key ]
+  , td [ title "weight" ]
+    [ text <| toString signer.weight ]
+  ]
+
+lineRows line =
+  [ td [ title "limit" ] [ text <| limitwrap line.limit ]
+  , td [ title "asset" ] [ viewAsset line.asset ]
+  ]
+
+trustAuthRows ta =
+  [ td [ title "trustor" ] [ addrlink ta.trustor ]
+  , td [ title "asset code" ] [ text ta.asset.code ]
+  ]

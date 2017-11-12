@@ -36,6 +36,9 @@ wrap str =
   else (String.left 3 str) ++ "..." ++ (String.right 4 str)
     |> String.toLower
 
+limitwrap : String -> String
+limitwrap number = if number == "922337203685.4775807" then "max" else number
+
 hashcolor : String -> Attribute msg
 hashcolor id =
   let 

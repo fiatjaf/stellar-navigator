@@ -344,7 +344,7 @@ opDataRows data =
         ]
       , tr []
         [ th [] [ text "limit" ]
-        , td [ class "emphasis" ] [ text trust.limit ]
+        , td [ class "emphasis" ] [ text <| limitwrap trust.limit ]
         ]
       ]
     AllowTrust allow ->
@@ -364,7 +364,7 @@ opDataRows data =
         Just limit ->
           tr []
             [ th [] [ text "limit" ]
-            , td [ class "emphasis" ] [ text limit ]
+            , td [ class "emphasis" ] [ text <| limitwrap limit ]
             ]
         Nothing -> text ""
       ]
