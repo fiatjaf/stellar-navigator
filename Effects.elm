@@ -7,7 +7,7 @@ import Html exposing
   , input, select, option, header
   , span, section, img, label
   )
-import Html.Attributes exposing (colspan, title)
+import Html.Attributes exposing (colspan, title, class)
 import Html.Events exposing (onClick, onInput, onSubmit, onWithOptions)
 import Json.Decode as J
 
