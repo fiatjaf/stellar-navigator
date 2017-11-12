@@ -136,3 +136,9 @@ base : Bool -> String
 base testnet = if testnet
   then "https://horizon-testnet.stellar.org"
   else "https://horizon.stellar.org"
+
+curry3 : ((a, b, c) -> d) -> a -> b -> c -> d
+curry3 f x y z = f (x, y, z)
+
+uncurry3 : (a -> b -> c -> d) -> (a, b, c) -> d
+uncurry3 f (x, y, z) = f x y z

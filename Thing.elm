@@ -16,8 +16,12 @@ import Json.Decode as J
 import Route exposing (..)
 
 import Operations exposing (..)
+import Effects exposing (..)
 import Asset exposing (..)
 import Helpers exposing (..)
+
+
+-- UTILS
 
 
 routes = router
@@ -27,18 +31,26 @@ routes = router
     <| static "txnsforaddr" </> string
   , route (OperationsForAddress << \s -> { defaultOfA | addr = s })
     <| static "opsforaddr" </> string
+  , route (EffectsForAddress << \s -> { defaultEfA | addr = s })
+    <| static "effsforaddr" </> string
   , route (Transaction << \s -> { defaultTxn | hash = s })
     <| static "txn" </> string
   , route (OperationsForTransaction << \s -> { defaultOfT | hash = s })
     <| static "opsfortxn" </> string
+  , route (EffectsForTransaction << \s -> { defaultEfT | hash = s })
+    <| static "effsfortxn" </> string
   , route (Operation << \s -> { defaultOp | id = s })
     <| static "op" </> string
+  , route (EffectsForOperation << \s -> { defaultEfO | id = s })
+    <| static "effsforop" </> string
   , route (Ledger << \s -> { defaultLed | sequence = s })
     <| static "led" </> int
   , route (OperationsForLedger << \s -> { defaultOfL | sequence = s })
     <| static "opsforled" </> int
   , route (TransactionsForLedger << \s -> { defaultTfL | sequence = s })
     <| static "txnsforled" </> int
+  , route (EffectsForLedger << \s -> { defaultEfL | sequence = s })
+    <| static "effsforled" </> int
   ] 
 
 match : String -> Maybe Thing
@@ -57,12 +69,16 @@ type Thing
   = Address Addr
   | TransactionsForAddress TfA
   | OperationsForAddress OfA
+  | EffectsForAddress EfA
   | Transaction Txn
   | OperationsForTransaction OfT
+  | EffectsForTransaction EfT
   | Operation Op
+  | EffectsForOperation EfO
   | Ledger Led
   | OperationsForLedger OfL
   | TransactionsForLedger TfL
+  | EffectsForLedger EfL
   | Empty
   | Loading
   | Errored Http.Error
@@ -78,15 +94,23 @@ thingUrl thing =
       "/accounts/" ++ tfa.addr ++ "/transactions?order=desc&limit=23"
     OperationsForAddress ofa ->
       "/accounts/" ++ ofa.addr ++ "/operations?order=desc&limit=23"
+    EffectsForAddress efa ->
+      "/accounts/" ++ efa.addr ++ "/effects"
     Transaction txn -> "/transactions/" ++ txn.hash
     OperationsForTransaction oft ->
       "/transactions/" ++ oft.hash ++ "/operations"
+    EffectsForTransaction eft ->
+      "/transactions/" ++ eft.hash ++ "/effects"
     Operation op -> "/operations/" ++ op.id
+    EffectsForOperation efo ->
+      "/operations/" ++ efo.id ++ "/effects"
     Ledger led -> "/ledgers/" ++ (toString led.sequence)
     OperationsForLedger ofl ->
       "/ledgers/" ++ (toString ofl.sequence) ++ "/operations"
     TransactionsForLedger tfl ->
       "/ledgers/" ++ (toString tfl.sequence) ++ "/transactions"
+    EffectsForLedger efl ->
+      "/ledgers/" ++ (toString efl.sequence) ++ "/effects"
     Empty -> ""
     Loading -> ""
     Errored _ -> ""
@@ -103,12 +127,24 @@ thingDecoder thing =
       ofaDecoder
         |> J.map (\f -> { f | addr = ofa.addr })
         |> J.map OperationsForAddress
+    EffectsForAddress efa ->
+      efaDecoder
+        |> J.map (\f -> { f | addr = efa.addr })
+        |> J.map EffectsForAddress
     Transaction _ -> txnDecoder |> J.map Transaction
     OperationsForTransaction oft ->
       oftDecoder
         |> J.map (\f -> { f | hash = oft.hash })
         |> J.map OperationsForTransaction
+    EffectsForTransaction eft ->
+      eftDecoder
+        |> J.map (\f -> { f | hash = eft.hash })
+        |> J.map EffectsForTransaction
     Operation _ -> opDecoder |> J.map Operation
+    EffectsForOperation efo ->
+      efoDecoder
+        |> J.map (\f -> { f | id = efo.id })
+        |> J.map EffectsForOperation
     Ledger _ -> ledDecoder |> J.map Ledger
     OperationsForLedger ofl ->
       oflDecoder
@@ -118,9 +154,17 @@ thingDecoder thing =
       tflDecoder
         |> J.map (\f -> { f | sequence = tfl.sequence })
         |> J.map TransactionsForLedger
+    EffectsForLedger efl ->
+      eflDecoder
+        |> J.map (\f -> { f | sequence = efl.sequence })
+        |> J.map EffectsForLedger
     Errored err -> J.null (Errored err)
     Loading -> J.null Loading
     Empty -> J.null Empty
+
+
+-- MODELS
+
 
 type alias Addr =
   { id : String
@@ -178,31 +222,27 @@ balanceDecoder =
       ]
     )
 
-type alias TfA =
-  { addr : String
-  , transactions : List Txn
-  }
-
+type alias TfA = { addr : String , transactions : List Txn }
 defaultTfA = TfA "" []
-
-tfaDecoder : J.Decoder TfA
 tfaDecoder =
   J.map2 TfA
     ( J.succeed "" )
     ( J.at ["_embedded", "records"] (J.list txnDecoder) )
 
-type alias OfA =
-  { addr : String
-  , operations : List Op
-  }
-
+type alias OfA = { addr : String , operations : List Op }
 defaultOfA = OfA "" []
-
-ofaDecoder : J.Decoder OfA
 ofaDecoder =
   J.map2 OfA
     ( J.succeed "" )
     ( J.at ["_embedded", "records"] (J.list opDecoder) )
+
+type alias EfA = { addr : String , effects : List Eff }
+defaultEfA = EfA "" []
+efaDecoder =
+  J.map2 EfA
+    ( J.succeed "" )
+    ( J.at ["_embedded", "records"] (J.list effDecoder) )
+
 
 type alias Txn =
   { hash : String
@@ -225,18 +265,20 @@ txnDecoder =
     ( J.field "operation_count" J.int )
     ( J.field "fee_paid" J.int )
 
-type alias OfT =
-  { hash : String
-  , operations : List Op
-  }
-
+type alias OfT = { hash : String , operations : List Op }
 defaultOfT = OfT "" []
-
-oftDecoder : J.Decoder OfT
 oftDecoder =
   J.map2 OfT
     ( J.succeed "" )
     ( J.at ["_embedded", "records"] (J.list opDecoder) )
+
+type alias EfT = { hash : String , effects : List Eff }
+defaultEfT = EfT "" []
+eftDecoder =
+  J.map2 EfT
+    ( J.succeed "" )
+    ( J.at ["_embedded", "records"] (J.list effDecoder) )
+
 
 type alias Op =
   { id : String
@@ -260,6 +302,13 @@ opDecoder =
     ( ( J.field "type" J.string )
       |> J.andThen opDataDecoder
     )
+
+type alias EfO = { id : String , effects : List Eff }
+defaultEfO = EfO "" []
+efoDecoder =
+  J.map2 EfO
+    ( J.succeed "" )
+    ( J.at ["_embedded", "records"] (J.list effDecoder) )
 
 
 type alias Led =
@@ -302,33 +351,53 @@ ledDecoder =
     ( J.field "closed_at" J.string )
     ( networkDecoder )
 
-
-type alias TfL =
-  { sequence : Int
-  , transactions : List Txn
-  }
-
+type alias TfL = { sequence : Int , transactions : List Txn }
 defaultTfL = TfL 0 []
-
-tflDecoder : J.Decoder TfL
 tflDecoder =
   J.map2 TfL
     ( J.succeed 0 )
     ( J.at ["_embedded", "records"] (J.list txnDecoder) )
 
-
-type alias OfL =
-  { sequence : Int
-  , operations : List Op
-  }
-
+type alias OfL = { sequence : Int , operations : List Op }
 defaultOfL = OfL 0 []
-
-oflDecoder : J.Decoder OfL
 oflDecoder =
   J.map2 OfL
     ( J.succeed 0 )
     ( J.at ["_embedded", "records"] (J.list opDecoder) )
+
+type alias EfL = { sequence : Int , effects : List Eff }
+defaultEfL = EfL 0 []
+eflDecoder =
+  J.map2 EfL
+    ( J.succeed 0 )
+    ( J.at ["_embedded", "records"] (J.list effDecoder) )
+
+
+type alias Eff =
+  { id : String
+  , type_ : String
+  , account : String
+  , operation : String
+  , effData : EffData
+  }
+
+defaultEff = Eff "" "" "" "" NoEffData
+
+effDecoder : J.Decoder Eff
+effDecoder =
+  J.map5 Eff
+    ( J.field "id" J.string )
+    ( J.field "type" J.string )
+    ( J.field "account" J.string )
+    ( J.at [ "_links", "operation", "href" ] J.string
+      |> J.map (String.split "/" >> List.reverse >> List.head >> Maybe.withDefault "")
+    )
+    ( ( J.field "type" J.string )
+      |> J.andThen effDataDecoder
+    )
+
+
+-- VIEWS
 
 
 viewThing : (Thing, Bool) -> Html GlobalAction
@@ -338,12 +407,16 @@ viewThing (t, testnet)  =
       Address addr -> ("addr", viewAddr addr)
       TransactionsForAddress tfa -> ("addr", viewTfA tfa)
       OperationsForAddress ofa -> ("addr", viewOfA ofa)
+      EffectsForAddress efa -> ("addr", viewEfA efa)
       Transaction txn -> ("txn", viewTxn txn)
       OperationsForTransaction oft -> ("txn", viewOfT oft)
+      EffectsForTransaction eft -> ("txn", viewEfT eft)
       Operation op -> ("op", viewOp op)
+      EffectsForOperation efo -> ("op", viewEfO efo)
       Ledger led -> ("led", viewLed led)
       TransactionsForLedger tfl -> ("led", viewTfL tfl)
       OperationsForLedger ofl -> ("led", viewOfL ofl)
+      EffectsForLedger efl -> ("led", viewEfL efl)
       Empty -> ("empty", text "")
       Loading -> ("loading", loading)
       Errored err -> ("errored", text <| errorFormat err)
@@ -415,6 +488,14 @@ viewAddr addr =
             [ text "view last 23" ] ]
         ]
       , tr []
+        [ th [] [ text "effects" ]
+        , td []
+          [ a
+            [ onClick (NavigateTo <| "/effsforaddr/" ++ addr.id) ]
+            [ text "list effects" ]
+          ]
+        ]
+      , tr []
         [ th [ class "wrappable" ] [ text "home_domain" ]
         , td [] [ text addr.home_domain ]
         ]
@@ -460,6 +541,9 @@ viewTfA tfa =
         <| List.map shortTxnRow tfa.transactions
       ]
     ]
+
+viewEfA : EfA -> Html GlobalAction
+viewEfA efa = viewEffList efa.effects efa.addr
 
 shortTxnHeader : Html msg
 shortTxnHeader =
@@ -524,6 +608,14 @@ viewTxn txn =
         [ th [] [ text "fee_paid" ]
         , td [] [ text <| toString txn.fee_paid ]
         ]
+      , tr []
+        [ th [] [ text "effects" ]
+        , td []
+          [ a
+            [ onClick (NavigateTo <| "/effsfortxn/" ++ txn.hash) ]
+            [ text "list effects" ]
+          ]
+        ]
       ]
     ]
 
@@ -554,6 +646,9 @@ viewOfA ofa =
         <| List.map shortOpRow ofa.operations
       ]
     ]
+
+viewEfT : EfT -> Html GlobalAction
+viewEfT eft = viewEffList eft.effects eft.hash
 
 shortOpHeader : Html msg
 shortOpHeader =
@@ -593,7 +688,17 @@ viewOp op =
         ]
       ]
     specificrows = opDataRows op.data
-    rows = List.concat [ generalrows, specificrows ]
+    effectrows =
+      [ tr []
+        [ th [] [ text "effects" ]
+        , td []
+          [ a
+            [ onClick (NavigateTo <| "/effsforop/" ++ op.id) ]
+            [ text "list effects" ]
+          ]
+        ]
+      ]
+    rows = List.concat [ generalrows, specificrows, effectrows ]
   in div []
     [ h1 [ class "title", onClick SurfHere ]
       [ span [ class "emphasis" ] [ text op.type_ ]
@@ -601,6 +706,9 @@ viewOp op =
       ]
     , table [] rows
     ]
+
+viewEfO : EfO -> Html GlobalAction
+viewEfO efo = viewEffList efo.effects efo.id
 
 shortLedRow : Led -> Html GlobalAction
 shortLedRow led =
@@ -666,6 +774,14 @@ viewLed led =
           ]
         ]
       , tr []
+        [ th [] [ text "effects" ]
+        , td []
+          [ a
+            [ onClick (NavigateTo <| "/effsforled/" ++ seq) ]
+            [ text "list effects" ]
+          ]
+        ]
+      , tr []
         [ th [] [ text "total_coins" ]
         , td [] [ text led.network.total_coins ]
         ]
@@ -721,4 +837,38 @@ viewOfL ofl =
       , tbody []
         <| List.map shortOpRow ofl.operations
       ]
+    ]
+
+viewEfL : EfL -> Html GlobalAction
+viewEfL efl = viewEffList efl.effects (toString efl.sequence)
+
+
+viewEffList : List Eff -> String -> Html GlobalAction
+viewEffList effects parent_id =
+  div []
+    [ h1 [ class "title is-3", onClick SurfHere ]
+      [ text "Effects for "
+      , span [ title parent_id, hashcolor parent_id ] [ text <| wrap parent_id ]
+      ]
+    , table []
+      [ shortEffHeader
+      , tbody []
+        <| List.map shortEffRow effects
+      ]
+    ]
+
+shortEffHeader : Html msg
+shortEffHeader =
+  thead []
+    [ tr []
+      [ th [] [ text "account" ]
+      , th [] [ text "type" ]
+      ]
+    ]
+
+shortEffRow : Eff -> Html GlobalAction
+shortEffRow eff =
+  tr []
+    [ td [] [ addrlink eff.account ]
+    , td [] [ text eff.type_ ]
     ]
