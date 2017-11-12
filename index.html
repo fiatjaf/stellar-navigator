@@ -53,19 +53,33 @@ window.onpopstate = function (e) {
 
 // eventsource calls for the last operations and last ledgers
 var sseops, ssetxns, sseleds
+
+var lastScreens = [
+  {eventsource: sseops, url: '/operations', port: 'newop'},
+  {eventsource: ssetxns, url: '/transactions', port: 'newtxn'},
+  {eventsource: sseleds, url: '/ledgers', port: 'newled'},
+]
+
 app.ports.sse.subscribe(function (base) {
-  if (sseops) sseops.close()
-  if (ssetxns) ssetxns.close()
-  if (sseleds) sseleds.close()
+  lastScreens.forEach(function (screen) {
+    var url = screen.url
+    var port = screen.port
 
-  sseops = new EventSource(base + '/operations?cursor=now')
-  sseops.onmessage = function (e) { app.ports.newop.send(e.data) }
+    if (screen.eventsource) screen.eventsource.close()
 
-  ssetxns = new EventSource(base + '/transactions?cursor=now')
-  ssetxns.onmessage = function (e) { app.ports.newtxn.send(e.data) }
+    fetch(base + url + '?limit=15&order=desc')
+      .then(function (r) { return r.json() })
+      .then(function (data) {
+        data._embedded.records.forEach(function (d) {
+          app.ports[port].send(JSON.stringify(d))
+        })
 
-  sseleds = new EventSource(base + '/ledgers?cursor=now')
-  sseleds.onmessage = function (e) { app.ports.newled.send(e.data) }
+        screen.eventsource = new EventSource(base + url + '?cursor=now')
+        screen.eventsource.onmessage = function (e) {
+          app.ports[port].send(e.data)
+        }
+      })
+  })
 })
 </script>
 
