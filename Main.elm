@@ -10,6 +10,7 @@ import Html.Lazy exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
+import Dict exposing (Dict)
 import Tuple exposing (..)
 import Platform.Sub as Sub
 import Array exposing (Array)
@@ -39,10 +40,13 @@ type alias Model =
   , last_ops : List Op
   , last_txns : List Txn
   , last_leds : List Led
+  , pasted : String
+  , name_cache: NameCache
   }
 
 type alias Flags =
   { testnet : Bool
+  , name_cache : List (String, String)
   }
 
 
@@ -55,6 +59,8 @@ init flags =
     []
     []
     []
+    ""
+    (Dict.fromList flags.name_cache)
   , sse <| base flags.testnet
   )
 
@@ -62,6 +68,7 @@ init flags =
 -- UPDATE
 type Msg
   = GotThing Bool Int (Result Http.Error Thing)
+  | GotFederation (String, String)
   | Navigate Int String
   | Surf Int
   | Refresh Int
@@ -88,14 +95,28 @@ update msg model =
           ( { model | things = model.things
               |> Array.set pos (thing, testnet)
             }
-          , Cmd.none
+          , case thing of
+            Address addr ->
+              if addr.home_domain /= "" &&
+                 (not <| Dict.member addr.id model.name_cache)
+              then grabFederation (addr.home_domain, addr.id)
+              else Cmd.none
+            _ -> Cmd.none
           )
+    GotFederation (addr, name) ->
+      ( { model
+          | name_cache = model.name_cache
+            |> Dict.insert addr name
+        }
+      , Cmd.none
+      )
     Navigate base_pos pathname ->
       ( { model
           | pos = base_pos + 1
           , things = model.things
             |> Array.slice 0 (base_pos + 1)
             |> Array.push loadingThing
+          , pasted = ""
         }
       , Cmd.batch
         [ fetch (base model.testnet) pathname
@@ -108,7 +129,7 @@ update msg model =
         kind = identifierKind something
         pathname = "/" ++ kind ++ "/" ++ something
       in
-        update (Navigate model.pos pathname) model
+        update (Navigate model.pos pathname) { model | pasted = something }
     Surf pos ->
       ( { model | pos = Debug.log "surfing to" ( if pos <= 1 then 1 else pos ) }
       , Cmd.none
@@ -156,6 +177,7 @@ update msg model =
 
 -- SUBSCRIPTIONS
 
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
@@ -164,10 +186,13 @@ subscriptions model =
     , newop <| J.decodeString opDecoder >> Result.withDefault defaultOp >> NewOperation
     , newtxn <| J.decodeString txnDecoder >> Result.withDefault defaultTxn >> NewTransaction
     , newled <| J.decodeString ledDecoder >> Result.withDefault defaultLed >> NewLedger
+    , gotFederation GotFederation
     ]
 
 
 -- VIEW
+
+
 view : Model -> Html Msg
 view model =
   div []
@@ -198,6 +223,7 @@ view model =
           [ class "input"
           , placeholder "Paste a Stellar identifier (address, transaction hash, ledger number, operation id etc.)"
           , onInput Pasted
+          , value model.pasted
           ] []
         ]
       ]
@@ -210,25 +236,25 @@ view model =
         nplus1 = Array.get (model.pos + 1) model.things |> withDefault emptyThing
       in
         [ div [ class "column nminus3" ]
-          [ lazy viewThing nminus3 |> Html.map (GlobalMessage (model.pos - 3))
+          [ lazy2 viewThing model.name_cache nminus3 |> Html.map (GlobalMessage (model.pos - 3))
           ]
         , div [ class "column nminus2" ]
-          [ lazy viewThing nminus2 |> Html.map (GlobalMessage (model.pos - 2))
+          [ lazy2 viewThing model.name_cache nminus2 |> Html.map (GlobalMessage (model.pos - 2))
           ]
         , div [ class "column nminus1" ]
-          [ lazy viewThing nminus1 |> Html.map (GlobalMessage (model.pos - 1))
+          [ lazy2 viewThing model.name_cache nminus1 |> Html.map (GlobalMessage (model.pos - 1))
           ]
         , div [ class "column n" ]
-          [ lazy viewThing n |> Html.map (GlobalMessage model.pos)
+          [ lazy2 viewThing model.name_cache n |> Html.map (GlobalMessage model.pos)
           ]
         , div [ class "column nplus1" ]
-          [ lazy viewThing nplus1 |> Html.map (GlobalMessage (model.pos + 1))
+          [ lazy2 viewThing model.name_cache nplus1 |> Html.map (GlobalMessage (model.pos + 1))
           ]
         ]
     , div [ class "live columns is-desktop" ]
       [ div [ class "column" ]
         [ div [ class "box" ] <|
-          let viewRow = lazy shortOpRow >> Html.map (GlobalMessage model.pos)
+          let viewRow = lazy2 shortOpRow model.name_cache >> Html.map (GlobalMessage model.pos)
           in
             [ h1 [ class "title is-4" ] [ text "last operations" ]
             , table []
@@ -240,7 +266,7 @@ view model =
         ]
       , div [ class "column" ]
         [ div [ class "box" ] <|
-          let viewRow = lazy shortTxnRow >> Html.map (GlobalMessage model.pos)
+          let viewRow = lazy2 shortTxnRow model.name_cache >> Html.map (GlobalMessage model.pos)
           in
             [ h1 [ class "title is-4" ] [ text "last transactions" ]
             , table []
@@ -252,7 +278,7 @@ view model =
         ]
       , div [ class "column" ]
         [ div [ class "box" ] <|
-          let viewRow = lazy shortLedRow >> Html.map (GlobalMessage model.pos)
+          let viewRow = lazy2 shortLedRow model.name_cache >> Html.map (GlobalMessage model.pos)
           in
             [ h1 [ class "title is-4" ] [ text "last ledgers closed" ]
             , table []

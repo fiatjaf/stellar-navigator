@@ -19,6 +19,7 @@ import Svg.Attributes exposing
   , preserveAspectRatio, viewBox
   )
 import Http
+import Dict exposing (Dict)
 import Hashbow
 import Color
 import Date
@@ -67,7 +68,6 @@ errorFormat err =
     Http.BadPayload x y -> "bad payload (" ++ x ++ ")"
 
 
-addrlink = link "addr"
 txnlink = link "txn"
 oplink = link "op"
 efflink = link "eff"
@@ -81,6 +81,18 @@ link kind id =
     , hashcolor id
     ] [ text <| wrap id ]
 
+addrlink : NameCache -> String -> Html GlobalAction
+addrlink nc id =
+  a
+    [ onClick <| NavigateTo ("/addr/" ++ id)
+    , title id
+    , class <| "link addr"
+    , hashcolor id
+    ] [ text <| case Dict.get id nc of
+        Nothing -> wrap id
+        Just name -> name
+      ]
+
 ledlink : Int -> Html GlobalAction
 ledlink seq =
   a
@@ -90,6 +102,7 @@ ledlink seq =
     , hashcolor (toString seq)
     ] [ text <| toString seq ]
 
+type alias NameCache = Dict String String
 
 identifierKind : String -> String
 identifierKind identifier =

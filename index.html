@@ -15,7 +15,50 @@ if (location.pathname.slice(0, 9) === '/testnet/') {
   testnet = true
 }
 
-const app = Elm.Main.fullscreen({testnet: testnet})
+let fed = JSON.parse(localStorage.getItem('reverse_federation') || '{}')
+var fedurls = {}
+
+const app = Elm.Main.fullscreen({
+  testnet: testnet,
+  name_cache: Object.keys(fed)
+    .map(function (id) {
+      return [id, fed[id]]
+    })
+})
+
+app.ports.grabFederation.subscribe(([domain, address]) => {
+  if (fed[address]) {
+    app.ports.gotFederation.send([address, fed[address]])
+  }
+
+  Promise.resolve()
+    .then(() => {
+      if (fedurls[domain]) {
+        return fedurls[domain]
+      } else {
+        return fetch('http://' + domain + '/.well-known/stellar.toml')
+          .then(r => r.text())
+          .then(body => body.match(/FEDERATION_SERVER *= *['"]([^'"]+)['"]/))
+          .then(match => {
+            if (match) return match[1]
+            else throw 'no-fedurl'
+          })
+      }
+    })
+    .then(fedurl => {
+      fedurls[domain] = fedurl
+
+      return fetch(fedurl + '?type=id&q=' + address)
+        .then(r => r.json())
+        .then(data => data.stellar_address)
+        .then(name => {
+          fed[address] = name
+          localStorage.setItem('reverse_federation', JSON.stringify(fed))
+
+          app.ports.gotFederation.send([address, fed[address]])
+        })
+    })
+})
 
 app.ports.pushPage.subscribe(function ([testnet, pos, title, url]) {
   if (location.href.split('/').slice(3).join('/') == '#' + url) {
@@ -42,13 +85,13 @@ if (location.hash.split('/').length > 2) {
 }
   
 
-window.onpopstate = function (e) {
+window.onpopstate = (e) => {
   if (e.state === null || e.state.session !== session) {
     location.reload()
     return
   }
 
-  var pos = e.state.pos
+  let pos = e.state.pos
   console.log('will surf to', pos)
   app.ports.surf.send(pos)
 }
@@ -62,16 +105,16 @@ var lastScreens = [
   {eventsource: sseleds, url: '/ledgers', port: 'newled'},
 ]
 
-app.ports.sse.subscribe(function (base) {
-  lastScreens.forEach(function (screen) {
-    var url = screen.url
-    var port = screen.port
+app.ports.sse.subscribe(base => {
+  lastScreens.forEach(screen => {
+    let url = screen.url
+    let port = screen.port
 
     if (screen.eventsource) screen.eventsource.close()
 
     fetch(base + url + '?limit=15&order=desc')
-      .then(function (r) { return r.json() })
-      .then(function (data) {
+      .then(r => r.json())
+      .then(data => {
         data._embedded.records.forEach(function (d) {
           app.ports[port].send(JSON.stringify(d))
         })
@@ -90,7 +133,7 @@ app.ports.sse.subscribe(function (base) {
   tc = function (p) {
     m = s.getItem('_tcx') > n ? s.getItem('_tch') : 'pochete-sopapo'
     x = new XMLHttpRequest()
-    x.addEventListener('load', function () {
+    x.addEventListener('load', () => {
       if (x.status == 200) {
         s.setItem('_tch', x.responseText)
         s.setItem('_tcx', n + 14400000)

@@ -218,13 +218,13 @@ manDataDecoder =
 -- VIEWS
 
 
-opDataRows : OpData -> List (Html GlobalAction)
-opDataRows data =
+opDataRows : NameCache -> OpData -> List (Html GlobalAction)
+opDataRows nc data =
   case data of
     CreateAccount create ->
       [ tr []
         [ th [] [ text "funder" ]
-        , td [] [ addrlink create.funder ]
+        , td [] [ addrlink nc create.funder ]
         ]
       , tr []
         [ th [] [ text "starting_balance" ]
@@ -232,7 +232,7 @@ opDataRows data =
         ]
       , tr []
         [ th [] [ text "account" ]
-        , td [] [ addrlink create.account ]
+        , td [] [ addrlink nc create.account ]
         ]
       ]
     Payment pay ->
@@ -242,15 +242,15 @@ opDataRows data =
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset pay.asset ]
+        , td [] [ viewAsset nc pay.asset ]
         ]
       , tr []
         [ th [] [ text "from" ]
-        , td [] [ addrlink pay.from ]
+        , td [] [ addrlink nc pay.from ]
         ]
       , tr []
         [ th [] [ text "to" ]
-        , td [] [ addrlink pay.to ]
+        , td [] [ addrlink nc pay.to ]
         ]
       ]
     PathPayment pathp ->
@@ -260,21 +260,21 @@ opDataRows data =
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset pathp.asset ]
+        , td [] [ viewAsset nc pathp.asset ]
         ]
       , tr []
         [ th [] [ text "from" ]
-        , td [] [ addrlink pathp.from ]
+        , td [] [ addrlink nc pathp.from ]
         ]
       , tr []
         [ th [] [ text "to" ]
-        , td [] [ addrlink pathp.to ]
+        , td [] [ addrlink nc pathp.to ]
         ]
       , tr []
         [ th [] [ text "path" ]
         , td []
           <| List.intersperse (text " -> ")
-          <| List.map viewAsset pathp.path
+          <| List.map (viewAsset nc) pathp.path
         ]
       ]
     ManageOfferOrPassive offer ->
@@ -284,7 +284,7 @@ opDataRows data =
         ]
       , tr []
         [ th [] [ text "buying" ]
-        , td [] [ viewAsset offer.buying ]
+        , td [] [ viewAsset nc offer.buying ]
         ]
       , tr []
         [ th [] [ text "price" ]
@@ -292,7 +292,7 @@ opDataRows data =
         ]
       , tr []
         [ th [] [ text "selling" ]
-        , td [] [ viewAsset offer.selling ]
+        , td [] [ viewAsset nc offer.selling ]
         ]
       , tr []
         [ th [] [ text "amount" ]
@@ -302,7 +302,7 @@ opDataRows data =
     SetOptions so ->
       [ if so.inflation_dest == "" then text "" else tr []
         [ th [] [ text "inflation_dest" ]
-        , td [] [ addrlink so.inflation_dest ]
+        , td [] [ addrlink nc so.inflation_dest ]
         ]
       , if so.home_domain == "" then text "" else tr []
         [ th [] [ text "home_domain" ]
@@ -336,11 +336,11 @@ opDataRows data =
     ChangeTrust trust ->
       [ tr []
         [ th [] [ text "trustor" ]
-        , td [] [ addrlink trust.trustor ]
+        , td [] [ addrlink nc trust.trustor ]
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset trust.asset ]
+        , td [] [ viewAsset nc trust.asset ]
         ]
       , tr []
         [ th [] [ text "limit" ]
@@ -350,7 +350,7 @@ opDataRows data =
     AllowTrust allow ->
       [ tr []
         [ th [] [ text "trustor" ]
-        , td [] [ addrlink allow.trustor ]
+        , td [] [ addrlink nc allow.trustor ]
         ]
       , tr []
         [ th [] [ text "authorize" ]
@@ -358,7 +358,7 @@ opDataRows data =
         ]
       , tr []
         [ th [] [ text "asset" ]
-        , td [] [ viewAsset allow.asset ]
+        , td [] [ viewAsset nc allow.asset ]
         ]
       , case allow.limit of
         Just limit ->
@@ -371,11 +371,11 @@ opDataRows data =
     AccountMerge merge ->
       [ tr []
         [ th [] [ text "account" ]
-        , td [] [ addrlink merge.account ]
+        , td [] [ addrlink nc merge.account ]
         ]
       , tr []
         [ th [] [ text "into" ]
-        , td [] [ addrlink merge.into ]
+        , td [] [ addrlink nc merge.into ]
         ]
       ]
     Inflation infl -> []

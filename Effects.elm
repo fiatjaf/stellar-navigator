@@ -142,16 +142,16 @@ trdDecoder =
 -- VIEW
 
 
-effDataRows : EffData -> List (Html GlobalAction)
-effDataRows effdata =
+effDataRows : NameCache -> EffData -> List (Html GlobalAction)
+effDataRows nc effdata =
   case effdata of
     AccountCreated b ->
       [ td
         [ colspan 2, title "starting_balance" ]
         [ text b.starting_balance ]
       ]
-    AccountCredited amt -> amtRows amt
-    AccountDebited amt -> amtRows amt
+    AccountCredited amt -> amtRows nc amt
+    AccountDebited amt -> amtRows nc amt
     AccountThresholdUpdated {low, med, high} ->
       [ td [ colspan 2, title "low, med, high" ]
         [ text <| toString low
@@ -171,21 +171,21 @@ effDataRows effdata =
       , td []
         [ text <| "auth " ++ (if auth_revokable then "revokable" else "not revokable") ]
       ]
-    SignerCreated signer -> signerRows signer
-    SignerRemoved signer -> signerRows signer
-    SignerUpdated signer -> signerRows signer
-    TrustlineCreated line -> lineRows line
-    TrustlineRemoved line -> lineRows line
-    TrustlineUpdated line -> lineRows line
-    TrustlineAuthorized ta -> trustAuthRows ta
-    TrustlineDeauthorized ta -> trustAuthRows ta
+    SignerCreated signer -> signerRows nc signer
+    SignerRemoved signer -> signerRows nc signer
+    SignerUpdated signer -> signerRows nc signer
+    TrustlineCreated line -> lineRows nc line
+    TrustlineRemoved line -> lineRows nc line
+    TrustlineUpdated line -> lineRows nc line
+    TrustlineAuthorized ta -> trustAuthRows nc ta
+    TrustlineDeauthorized ta -> trustAuthRows nc ta
     Trade trade ->
       [ td [ colspan 2 ]
         [ table []
           [ tr []
             [ td [ colspan 2, title "counterparty" ]
               [ text "counterparty: "
-              , addrlink trade.seller
+              , addrlink nc trade.seller
               ]
             ]
           , tr []
@@ -195,10 +195,10 @@ effDataRows effdata =
           , tr []
             [ td []
               [ text "← "
-              , viewAsset trade.bought_asset
+              , viewAsset nc trade.bought_asset
               ]
             , td []
-              [ viewAsset trade.sold_asset
+              [ viewAsset nc trade.sold_asset
               , text " →"
               ]
             ]
@@ -207,24 +207,24 @@ effDataRows effdata =
       ]
     NoEffData -> []
 
-amtRows amt =
+amtRows nc amt =
   [ td [ title "amount", class "emphasis" ] [ text amt.amount ]
-  , td [ title "asset" ] [ viewAsset amt.asset ]
+  , td [ title "asset" ] [ viewAsset nc amt.asset ]
   ]
 
-signerRows signer =
+signerRows nc signer =
   [ td [ title "public_key" ]
     [ text <| wrap signer.public_key ]
   , td [ title "weight" ]
     [ text <| toString signer.weight ]
   ]
 
-lineRows line =
+lineRows nc line =
   [ td [ title "limit" ] [ text <| limitwrap line.limit ]
-  , td [ title "asset" ] [ viewAsset line.asset ]
+  , td [ title "asset" ] [ viewAsset nc line.asset ]
   ]
 
-trustAuthRows ta =
-  [ td [ title "trustor" ] [ addrlink ta.trustor ]
+trustAuthRows nc ta =
+  [ td [ title "trustor" ] [ addrlink nc ta.trustor ]
   , td [ title "asset code" ] [ text ta.asset.code ]
   ]

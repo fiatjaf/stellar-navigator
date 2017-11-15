@@ -31,12 +31,12 @@ assetDecoder =
       <| J.maybe ( J.field "asset_issuer" J.string )
     )
 
-viewAsset : Asset -> Html GlobalAction
-viewAsset asset =
+viewAsset : NameCache -> Asset -> Html GlobalAction
+viewAsset nc asset =
   if asset.native then span [ class "asset-native" ] [ text "lumens" ]
   else span [ class "asset-issued" ]
     [ span [ class "code" ]
       [ text asset.code
       ]
-    , addrlink asset.issuer
+    , addrlink nc asset.issuer
     ]

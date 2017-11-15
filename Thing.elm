@@ -251,19 +251,27 @@ type alias Txn =
   , source_account : String
   , operation_count : Int
   , fee_paid : Int
+  , memo_type : String
+  , memo : String
   }
 
-defaultTxn = Txn "" 0 "" "" 0 0
+defaultTxn = Txn "" 0 "" "" 0 0 "" ""
 
 txnDecoder : J.Decoder Txn
 txnDecoder =
-  J.map6 Txn
+  J.map8 Txn
     ( J.field "hash" J.string )
     ( J.field "ledger" J.int )
     ( J.field "created_at" J.string )
     ( J.field "source_account" J.string )
     ( J.field "operation_count" J.int )
     ( J.field "fee_paid" J.int )
+    ( J.map (Maybe.withDefault "")
+      <| J.maybe ( J.field "memo_type" J.string )
+    )
+    ( J.map (Maybe.withDefault "")
+      <| J.maybe ( J.field "memo" J.string )
+    )
 
 type alias OfT = { hash : String , operations : List Op }
 defaultOfT = OfT "" []
@@ -397,26 +405,26 @@ effDecoder =
     )
 
 
--- VIEWS
+-- VIEW
 
 
-viewThing : (Thing, Bool) -> Html GlobalAction
-viewThing (t, testnet)  =
+viewThing : NameCache -> (Thing, Bool) -> Html GlobalAction
+viewThing name_cache (t, testnet)  =
   let
     (kind, content) = case t of
-      Address addr -> ("addr", viewAddr addr)
-      TransactionsForAddress tfa -> ("addr", viewTfA tfa)
-      OperationsForAddress ofa -> ("addr", viewOfA ofa)
-      EffectsForAddress efa -> ("addr", viewEfA efa)
-      Transaction txn -> ("txn", viewTxn txn)
-      OperationsForTransaction oft -> ("txn", viewOfT oft)
-      EffectsForTransaction eft -> ("txn", viewEfT eft)
-      Operation op -> ("op", viewOp op)
-      EffectsForOperation efo -> ("op", viewEfO efo)
-      Ledger led -> ("led", viewLed led)
-      TransactionsForLedger tfl -> ("led", viewTfL tfl)
-      OperationsForLedger ofl -> ("led", viewOfL ofl)
-      EffectsForLedger efl -> ("led", viewEfL efl)
+      Address addr -> ("addr", viewAddr name_cache addr)
+      TransactionsForAddress tfa -> ("addr", viewTfA name_cache tfa)
+      OperationsForAddress ofa -> ("addr", viewOfA name_cache ofa)
+      EffectsForAddress efa -> ("addr", viewEfA name_cache efa)
+      Transaction txn -> ("txn", viewTxn name_cache txn)
+      OperationsForTransaction oft -> ("txn", viewOfT name_cache oft)
+      EffectsForTransaction eft -> ("txn", viewEfT name_cache eft)
+      Operation op -> ("op", viewOp name_cache op)
+      EffectsForOperation efo -> ("op", viewEfO name_cache efo)
+      Ledger led -> ("led", viewLed name_cache led)
+      TransactionsForLedger tfl -> ("led", viewTfL name_cache tfl)
+      OperationsForLedger ofl -> ("led", viewOfL name_cache ofl)
+      EffectsForLedger efl -> ("led", viewEfL name_cache efl)
       Empty -> ("empty", text "")
       Loading -> ("loading", loading)
       Errored err -> ("errored", text <| errorFormat err)
@@ -426,8 +434,8 @@ viewThing (t, testnet)  =
       ] [ content ]
 
 
-viewAddr : Addr -> Html GlobalAction
-viewAddr addr =
+viewAddr : NameCache -> Addr -> Html GlobalAction
+viewAddr nc addr =
   div []
     [ h1 [ class "title", onClick SurfHere ]
       [ text "Address "
@@ -438,6 +446,12 @@ viewAddr addr =
         [ th [] [ text "id" ]
         , td [] [ text <| String.toUpper addr.id ]
         ]
+      , case Dict.get addr.id nc of
+        Nothing -> text ""
+        Just name -> tr []
+          [ th [] [ text "federated name" ]
+          , td [] [ text name ]
+          ]
       , tr []
         [ th [] [ text "balances" ]
         , td []
@@ -449,7 +463,7 @@ viewAddr addr =
                 ]
               ]
             , tbody []
-              <| List.map (balanceRow .balance) addr.balances
+              <| List.map (balanceRow nc .balance) addr.balances
             ]
           ]
         ]
@@ -469,7 +483,7 @@ viewAddr addr =
                     ]
                   ]
                 , tbody []
-                  <| List.map (balanceRow <| .limit >> limitwrap) balances
+                  <| List.map (balanceRow nc (.limit >> limitwrap)) balances
                 ]
               ]
             ]
@@ -503,7 +517,7 @@ viewAddr addr =
         [ th [ class "wrappable" ] [ text "inflation_destination" ]
         , td []
           [ if addr.inflation_destination /= ""
-            then addrlink addr.inflation_destination
+            then addrlink nc addr.inflation_destination
             else text ""
           ]
         ]
@@ -521,15 +535,15 @@ viewAddr addr =
       ]
     ]
 
-balanceRow : (Balance -> String) -> Balance -> Html GlobalAction
-balanceRow getter balance =
+balanceRow : NameCache -> (Balance -> String) -> Balance -> Html GlobalAction
+balanceRow nc getter balance =
   tr []
-    [ td [ class "singleline" ] [ viewAsset balance.asset ]
+    [ td [ class "singleline" ] [ viewAsset nc balance.asset ]
     , td [ title <| getter balance, class "wrappable" ] [ text <| getter balance ]
     ]
 
-viewTfA : TfA -> Html GlobalAction
-viewTfA tfa =
+viewTfA : NameCache -> TfA -> Html GlobalAction
+viewTfA nc tfa =
   div []
     [ h1 [ class "title is-3", onClick SurfHere ]
       [ text "Transactions for "
@@ -538,12 +552,12 @@ viewTfA tfa =
     , table []
       [ shortTxnHeader
       , tbody []
-        <| List.map shortTxnRow tfa.transactions
+        <| List.map (shortTxnRow nc) tfa.transactions
       ]
     ]
 
-viewEfA : EfA -> Html GlobalAction
-viewEfA efa = viewEffList efa.effects efa.addr
+viewEfA : NameCache -> EfA -> Html GlobalAction
+viewEfA nc efa = viewEffList nc efa.effects efa.addr
 
 shortTxnHeader : Html msg
 shortTxnHeader =
@@ -556,23 +570,23 @@ shortTxnHeader =
       ]
     ]
 
-shortTxnRow : Txn -> Html GlobalAction
-shortTxnRow txn =
+shortTxnRow : NameCache -> Txn -> Html GlobalAction
+shortTxnRow nc txn =
   tr []
     [ td [] [ txnlink txn.hash ]
     , td
       [ class "hideable"
       , title <| date txn.created_at
       ] [ text <| dateShort txn.created_at ]
-    , td [] [ addrlink txn.source_account ]
+    , td [] [ addrlink nc txn.source_account ]
     , td []
       [ a [ onClick (NavigateTo <| "/opsfortxn/" ++ txn.hash) ]
         [ text <| toString txn.operation_count ]
       ]
     ]
 
-viewTxn : Txn -> Html GlobalAction
-viewTxn txn =
+viewTxn : NameCache -> Txn -> Html GlobalAction
+viewTxn nc txn =
   div []
     [ h1 [ class "title", onClick SurfHere ]
       [ text "Transaction "
@@ -593,7 +607,7 @@ viewTxn txn =
         ]
       , tr []
         [ th [ class "wrappable" ] [ text "source_account" ]
-        , td [] [ addrlink txn.source_account ]
+        , td [] [ addrlink nc txn.source_account ]
         ]
       , tr []
         [ th [] [ text "ops" ]
@@ -609,6 +623,14 @@ viewTxn txn =
         , td [] [ text <| toString txn.fee_paid ]
         ]
       , tr []
+        [ th [] [ text "memo_type" ]
+        , td [] [ text txn.memo_type ]
+        ]
+      , tr []
+        [ th [] [ text "memo" ]
+        , td [] [ text txn.memo ]
+        ]
+      , tr []
         [ th [] [ text "effects" ]
         , td []
           [ a
@@ -619,8 +641,8 @@ viewTxn txn =
       ]
     ]
 
-viewOfT : OfT -> Html GlobalAction
-viewOfT oft =
+viewOfT : NameCache -> OfT -> Html GlobalAction
+viewOfT nc oft =
   div []
     [ h1 [ class "title is-3", onClick SurfHere ]
       [ text "Operations for "
@@ -629,12 +651,12 @@ viewOfT oft =
     , table []
       [ shortOpHeader
       , tbody []
-        <| List.map shortOpRow oft.operations
+        <| List.map (shortOpRow nc) oft.operations
       ]
     ]
 
-viewOfA : OfA -> Html GlobalAction
-viewOfA ofa =
+viewOfA : NameCache -> OfA -> Html GlobalAction
+viewOfA nc ofa =
   div []
     [ h1 [ class "title is-3", onClick SurfHere ]
       [ text "Operations for "
@@ -643,12 +665,12 @@ viewOfA ofa =
     , table []
       [ shortOpHeader
       , tbody []
-        <| List.map shortOpRow ofa.operations
+        <| List.map (shortOpRow nc) ofa.operations
       ]
     ]
 
-viewEfT : EfT -> Html GlobalAction
-viewEfT eft = viewEffList eft.effects eft.hash
+viewEfT : NameCache -> EfT -> Html GlobalAction
+viewEfT nc eft = viewEffList nc eft.effects eft.hash
 
 shortOpHeader : Html msg
 shortOpHeader =
@@ -661,17 +683,17 @@ shortOpHeader =
       ]
     ]
 
-shortOpRow : Op -> Html GlobalAction
-shortOpRow op =
+shortOpRow : NameCache -> Op -> Html GlobalAction
+shortOpRow nc op =
   tr []
     [ td [] [ oplink op.id ]
     , td [] [ text <| typereplace op.type_ ]
-    , td [] [ addrlink op.source_account ]
+    , td [] [ addrlink nc op.source_account ]
     , td [] [ txnlink op.txn ]
     ]
 
-viewOp : Op -> Html GlobalAction
-viewOp op =
+viewOp : NameCache -> Op -> Html GlobalAction
+viewOp nc op =
   let
     generalrows =
       [ tr []
@@ -680,14 +702,14 @@ viewOp op =
         ]
       , tr []
         [ th [ class "wrappable" ] [ text "source_account" ]
-        , td [] [ addrlink op.source_account ]
+        , td [] [ addrlink nc op.source_account ]
         ]
       , tr []
         [ th [] [ text "transaction" ]
         , td [] [ txnlink op.txn ]
         ]
       ]
-    specificrows = opDataRows op.data
+    specificrows = opDataRows nc op.data
     effectrows =
       [ tr []
         [ th [] [ text "effects" ]
@@ -707,11 +729,11 @@ viewOp op =
     , table [] rows
     ]
 
-viewEfO : EfO -> Html GlobalAction
-viewEfO efo = viewEffList efo.effects efo.id
+viewEfO : NameCache -> EfO -> Html GlobalAction
+viewEfO nc efo = viewEffList nc efo.effects efo.id
 
-shortLedRow : Led -> Html GlobalAction
-shortLedRow led =
+shortLedRow : NameCache -> Led -> Html GlobalAction
+shortLedRow nc led =
   let seq = toString led.sequence
   in tr []
     [ td [] [ ledlink led.sequence ]
@@ -730,8 +752,8 @@ shortLedRow led =
     ]
 
 
-viewLed : Led -> Html GlobalAction
-viewLed led =
+viewLed : NameCache -> Led -> Html GlobalAction
+viewLed nc led =
   let seq = toString led.sequence
   in div []
     [ h1 [ class "title", onClick SurfHere ]
@@ -809,8 +831,8 @@ viewLed led =
     ]
 
 
-viewTfL : TfL -> Html GlobalAction
-viewTfL tfl =
+viewTfL : NameCache -> TfL -> Html GlobalAction
+viewTfL nc tfl =
   let seq = toString tfl.sequence
   in div []
     [ h1 [ class "title is-3", onClick SurfHere ]
@@ -820,12 +842,12 @@ viewTfL tfl =
     , table []
       [ shortTxnHeader
       , tbody []
-        <| List.map shortTxnRow tfl.transactions
+        <| List.map (shortTxnRow nc) tfl.transactions
       ]
     ]
 
-viewOfL : OfL -> Html GlobalAction
-viewOfL ofl =
+viewOfL : NameCache -> OfL -> Html GlobalAction
+viewOfL nc ofl =
   let seq = toString ofl.sequence
   in div []
     [ h1 [ class "title is-3", onClick SurfHere ]
@@ -835,16 +857,16 @@ viewOfL ofl =
     , table []
       [ shortOpHeader
       , tbody []
-        <| List.map shortOpRow ofl.operations
+        <| List.map (shortOpRow nc) ofl.operations
       ]
     ]
 
-viewEfL : EfL -> Html GlobalAction
-viewEfL efl = viewEffList efl.effects (toString efl.sequence)
+viewEfL : NameCache -> EfL -> Html GlobalAction
+viewEfL nc efl = viewEffList nc efl.effects (toString efl.sequence)
 
 
-viewEffList : List Eff -> String -> Html GlobalAction
-viewEffList effects parent_id =
+viewEffList : NameCache -> List Eff -> String -> Html GlobalAction
+viewEffList nc effects parent_id =
   div []
     [ h1 [ class "title is-3", onClick SurfHere ]
       [ text "Effects for "
@@ -853,7 +875,7 @@ viewEffList effects parent_id =
     , table []
       [ shortEffHeader
       , tbody []
-        <| List.map shortEffRow effects
+        <| List.map (shortEffRow nc) effects
       ]
     ]
 
@@ -867,11 +889,11 @@ shortEffHeader =
       ]
     ]
 
-shortEffRow : Eff -> Html GlobalAction
-shortEffRow eff =
+shortEffRow : NameCache -> Eff -> Html GlobalAction
+shortEffRow nc eff =
   tr [] <|
     List.append
-      [ td [] [ addrlink eff.account ]
+      [ td [] [ addrlink nc eff.account ]
       , td [] [ text <| typereplace eff.type_ ]
       ]
-      ( effDataRows eff.effData )
+      ( effDataRows nc eff.effData )
