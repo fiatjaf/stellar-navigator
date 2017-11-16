@@ -235,10 +235,7 @@ view model =
         n = Array.get (model.pos) model.things |> withDefault emptyThing
         nplus1 = Array.get (model.pos + 1) model.things |> withDefault emptyThing
       in
-        [ div [ class "column nminus3" ]
-          [ lazy2 viewThing model.name_cache nminus3 |> Html.map (GlobalMessage (model.pos - 3))
-          ]
-        , div [ class "column nminus2" ]
+        [ div [ class "column nminus2" ]
           [ lazy2 viewThing model.name_cache nminus2 |> Html.map (GlobalMessage (model.pos - 2))
           ]
         , div [ class "column nminus1" ]

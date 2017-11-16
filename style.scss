@@ -85,7 +85,7 @@ html {
     min-height: 800px;
   }
 
-  .nminus3 {
+  .nminus2 {
     @extend .is-hidden-mobile;
     @extend .is-hidden-tablet-only;
     @extend .is-hidden-desktop-only;
@@ -95,29 +95,19 @@ html {
     @include small;
   }
 
-  .nminus2 {
-    @extend .is-hidden-mobile;
-    @extend .is-hidden-tablet-only;
-    @extend .is-2-desktop;
-    @extend .is-2-widescreen;
-    @extend .is-2-fullhd;
-
-    @include small;
-  }
-
   .nminus1 {
     @extend .is-hidden-mobile;
-    @extend .is-6-tablet;
-    @extend .is-5-desktop;
-    @extend .is-4-widescreen;
+    @extend .is-hidden-tablet-only;
+    @extend .is-6-desktop;
+    @extend .is-6-widescreen;
     @extend .is-3-fullhd;
   }
 
   .n {
     @extend .is-12-mobile;
-    @extend .is-6-tablet;
-    @extend .is-5-desktop;
-    @extend .is-4-widescreen;
+    @extend .is-12-tablet;
+    @extend .is-6-desktop;
+    @extend .is-6-widescreen;
     @extend .is-3-fullhd;
   }
 
@@ -125,7 +115,7 @@ html {
     @extend .is-hidden-mobile;
     @extend .is-hidden-tablet-only;
     @extend .is-hidden-desktop-only;
-    @extend .is-2-widescreen;
+    @extend .is-hidden-widescreen-only;
     @extend .is-2-fullhd;
 
     @include small;
